@@ -1,99 +1,63 @@
-# lis-be4fe-cattle-home
+# cattle-home
 
-Core delivery C# ASP.NET backend template.
+`cattle-home` is the BE4FE minimal API module for the Node `apps/cattle-home` flow.
 
-* [Install MongoDB](#install-mongodb)
-* [Inspect MongoDB](#inspect-mongodb)
-* [Testing](#testing)
-* [Running](#running)
-* [Dependabot](#dependabot)
+The current foundation is intentionally small:
 
+- minimal ASP.NET API surface
+- MongoDB for interim and ephemeral state
+- short-lived lookup caching in MongoDB
+- fake KRDS and cattle providers behind interfaces that can be replaced later
 
-### Docker Compose
+## Structure
 
-A Docker Compose template is in [compose.yml](compose.yml).
+- `src/CattleHome` contains the application code
+- `tests/CattleHome.Tests` contains smoke and endpoint tests
+- `compose.yml` starts MongoDB and this API for local development
 
-A local environment with:
+## Running locally
 
-- Localstack for AWS services (S3, SQS)
-- Redis
-- MongoDB
-- This service.
-- A commented out frontend example.
+Start MongoDB only:
 
 ```bash
-docker compose up --build -d
-```
-
-A more extensive setup is available in [github.com/DEFRA/cdp-local-environment](https://github.com/DEFRA/cdp-local-environment)
-
-### MongoDB
-
-#### MongoDB via Docker
-
-See above.
-
-```
 docker compose up -d mongodb
 ```
 
-#### MongoDB locally
+Run the API from the repo root:
 
-Alternatively install MongoDB locally:
-
-- Install [MongoDB](https://www.mongodb.com/docs/manual/tutorial/#installation) on your local machine
-- Start MongoDB:
 ```bash
-sudo mongod --dbpath ~/mongodb-cdp
+dotnet run --project src/CattleHome/CattleHome.csproj --launch-profile CattleHome
 ```
 
-#### MongoDB in CDP environments
+The development profile wires:
 
-In CDP environments a MongoDB instance is already set up
-and the credentials exposed as enviromment variables.
+- `Mongo__DatabaseUri=mongodb://127.0.0.1:27017/`
+- `Mongo__DatabaseName=lis-be4fe-cattle-home`
+- `CattleApi__BaseUrl=http://localhost:5000`
 
+Update `CattleApi__BaseUrl` to match the local `api/cattle` host if it differs.
 
-### Inspect MongoDB
+## Local container stack
 
-To inspect the Database and Collections locally:
+Bring up the API and MongoDB together:
+
 ```bash
-mongosh
+docker compose up --build
 ```
 
-You can use the CDP Terminal to access the environments' MongoDB.
+## Endpoints
 
-### Testing
+- `GET /` returns module metadata and whether Mongo and cattle API have been configured
+- `GET /health` returns the liveness check
+- `GET /openapi/v1.json` is available in development
+- `GET /api/users/{userId}/cphs` returns CPHs for a user, using Mongo cache first
+- `GET /api/cphs/{cph}/cattle` returns cattle for a CPH, using Mongo cache first
+- `GET /api/cattle/{cattleId}` returns cattle details, using Mongo cache first
 
-Run the tests with:
+## Testing
 
-Tests run by running a full `WebApplication` backed by [Ephemeral MongoDB](https://github.com/asimmon/ephemeral-mongo).
-Tests do not use mocking of any sort and read and write from the in-memory database.
+Run the solution tests:
 
 ```bash
-dotnet test
-````
-
-### Running
-
-Run CDP-Deployments application:
-```bash
-dotnet run --project LisBe4feCattleHome --launch-profile Development
+dotnet test be4fe-cattle-home.slnx
 ```
-
-### SonarCloud
-
-Example SonarCloud configuration are available in the GitHub Action workflows.
-
-### Dependabot
-
-We have added an example dependabot configuration file to the repository. You can enable it by renaming
-the [.github/example.dependabot.yml](.github/example.dependabot.yml) to `.github/dependabot.yml`
-
-
-### About the licence
-
-The Open Government Licence (OGL) was developed by the Controller of Her Majesty's Stationery Office (HMSO) to enable
-information providers in the public sector to license the use and re-use of their information under a common open
-licence.
-
-It is designed to encourage use and re-use of information freely and flexibly, with only a few conditions.
