@@ -1,3 +1,7 @@
+// <copyright file="DemoDataSeed.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
 namespace Defra.Lis.CattleHome.Integrations.CattleApi;
 
 internal static class DemoDataSeed

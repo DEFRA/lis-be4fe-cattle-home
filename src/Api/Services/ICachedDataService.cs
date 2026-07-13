@@ -1,3 +1,7 @@
+// <copyright file="ICachedDataService.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
 namespace Defra.Lis.Be4Fe.Api.Services;
 
 using Defra.Lis.CattleHome.Lookups.Models;

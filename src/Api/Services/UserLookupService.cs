@@ -1,3 +1,7 @@
+// <copyright file="UserLookupService.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
 namespace Defra.Lis.Be4Fe.Api.Services;
 
 using Defra.Lis.Be4Fe.Api.Lookups.Providers;

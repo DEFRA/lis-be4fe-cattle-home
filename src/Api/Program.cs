@@ -1,3 +1,7 @@
+// <copyright file="Program.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
 using System.Diagnostics.CodeAnalysis;
 using Defra.Lis.CattleHome.Integrations.CattleApi;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;

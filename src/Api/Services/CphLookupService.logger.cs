@@ -1,3 +1,7 @@
+// <copyright file="CphLookupService.logger.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
 namespace Defra.Lis.Be4Fe.Api.Services;
 
 public partial class CphLookupService

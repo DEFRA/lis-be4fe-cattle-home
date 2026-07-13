@@ -1,3 +1,7 @@
+// <copyright file="LivestockLookupEndpoints.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
 namespace Defra.Lis.Be4Fe.Api.Endpoints;
 
 using Defra.Lis.Be4Fe.Api.Services;

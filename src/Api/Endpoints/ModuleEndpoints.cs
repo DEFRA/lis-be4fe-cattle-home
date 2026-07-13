@@ -1,3 +1,7 @@
+// <copyright file="ModuleEndpoints.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
 namespace Defra.Lis.Be4Fe.Api.Endpoints;
 
 using System.Reflection;

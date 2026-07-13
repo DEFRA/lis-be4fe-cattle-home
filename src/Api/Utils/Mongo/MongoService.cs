@@ -1,3 +1,7 @@
+// <copyright file="MongoService.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
 namespace Defra.Lis.Be4Fe.Api.Utils.Mongo;
 
 using System.Diagnostics.CodeAnalysis;

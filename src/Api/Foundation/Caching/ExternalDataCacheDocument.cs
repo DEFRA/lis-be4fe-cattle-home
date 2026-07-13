@@ -1,3 +1,7 @@
+// <copyright file="ExternalDataCacheDocument.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
 namespace Defra.Lis.Be4Fe.Api.Foundation.Caching;
 
 using MongoDB.Bson.Serialization.Attributes;

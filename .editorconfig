@@ -56,7 +56,6 @@ resharper_web_config_wrong_module_highlighting = warning
 dotnet_diagnostic.SA0001.severity = none # SA0001: XML comment analysis is disabled due to project configuration
 dotnet_diagnostic.SA1101.severity = none # SA1101: Prefix local calls with this
 dotnet_diagnostic.SA1600.severity = none # SA1600: Elements should be documented
-dotnet_diagnostic.SA1633.severity = none # SA1633: File should have header
 
 [*.cs]
 # file layout
@@ -78,8 +77,8 @@ dotnet_diagnostic.SA1135.severity = error # SA1135: Using directives should be q
 dotnet_diagnostic.SA1507.severity = error # SA1507: Code should not contain multiple blank lines in a row
 dotnet_diagnostic.SA1508.severity = error # SA1508: Closing braces should not be preceded by blank line
 dotnet_diagnostic.SA1516.severity = error # SA1516: Elements should be separated by blank line
-dotnet_diagnostic.SA1518.severity = none # SA1518: Use line endings correctly at end of file
-dotnet_diagnostic.SA1633.severity = none # SA1633: File should have header
+dotnet_diagnostic.SA1518.severity = error # SA1518: Use line endings correctly at end of file
+dotnet_diagnostic.SA1633.severity = error # SA1633: File should have header
 
 # Newline settings
 csharp_new_line_before_open_brace = all

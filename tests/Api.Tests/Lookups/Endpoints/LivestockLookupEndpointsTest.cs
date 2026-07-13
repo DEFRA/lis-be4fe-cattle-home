@@ -1,3 +1,7 @@
+// <copyright file="LivestockLookupEndpointsTest.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
 namespace Defra.Lis.CattleHome.Tests.Lookups.Endpoints;
 
 using Defra.Lis.CattleHome.Integrations.CattleApi;
