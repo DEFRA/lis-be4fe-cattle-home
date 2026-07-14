@@ -21,13 +21,18 @@ public static class TrustStore
     {
         return Environment.GetEnvironmentVariables().Cast<DictionaryEntry>()
             .Where(entry =>
-                entry.Key.ToString()!.StartsWith("TRUSTSTORE_", StringComparison.Ordinal) && IsBase64String(entry.Value?.ToString() ?? ""))
-            .Select(entry => Convert.FromBase64String(entry.Value?.ToString() ?? "")).ToList();
+                entry.Key.ToString()!.StartsWith("TRUSTSTORE_", StringComparison.Ordinal) &&
+                IsBase64String(entry.Value?.ToString() ?? string.Empty))
+            .Select(entry => Convert.FromBase64String(entry.Value?.ToString() ?? string.Empty)).ToList();
     }
 
     private static void AddCertificates(List<byte[]> certificates)
     {
-        if (certificates.Count == 0) return; // to stop trust store access denied issues on Macs
+        if (certificates.Count == 0)
+        {
+            return; // to stop trust store access denied issues on Macs
+        }
+
         var x509Certificate2S = certificates.Select(X509CertificateLoader.LoadCertificate);
         var certificateCollection = new X509Certificate2Collection();
 

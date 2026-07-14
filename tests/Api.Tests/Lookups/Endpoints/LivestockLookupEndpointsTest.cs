@@ -2,20 +2,20 @@
 // Copyright (c) Defra. All rights reserved.
 // </copyright>
 
-namespace Defra.Lis.CattleHome.Tests.Lookups.Endpoints;
+namespace Defra.Lis.Be4Fe.Api.Tests.Lookups.Endpoints;
 
-using Defra.Lis.CattleHome.Integrations.CattleApi;
-using Defra.Lis.CattleHome.Lookups.Models;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Net;
 using System.Net.Http.Json;
 using Defra.Lis.Be4Fe.Api;
 using Defra.Lis.Be4Fe.Api.Foundation.Caching;
 using Defra.Lis.Be4Fe.Api.Lookups.Providers;
+using Defra.Lis.Be4Fe.CattleApi;
+using Defra.Lis.Be4Fe.Models.Lookups.Models;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 public class LivestockLookupEndpointsTest
 {

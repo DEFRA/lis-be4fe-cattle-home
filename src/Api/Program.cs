@@ -2,14 +2,9 @@
 // Copyright (c) Defra. All rights reserved.
 // </copyright>
 
-using System.Diagnostics.CodeAnalysis;
-using Defra.Lis.CattleHome.Integrations.CattleApi;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.OpenApi;
-using Serilog;
-
 namespace Defra.Lis.Be4Fe.Api;
 
+using System.Diagnostics.CodeAnalysis;
 using Defra.Lis.Be4Fe.Api.Config;
 using Defra.Lis.Be4Fe.Api.Endpoints;
 using Defra.Lis.Be4Fe.Api.Foundation.Caching;
@@ -19,9 +14,17 @@ using Defra.Lis.Be4Fe.Api.Utils;
 using Defra.Lis.Be4Fe.Api.Utils.Http;
 using Defra.Lis.Be4Fe.Api.Utils.Logging;
 using Defra.Lis.Be4Fe.Api.Utils.Mongo;
+using Defra.Lis.Be4Fe.CattleApi;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.OpenApi;
+using Serilog;
 
-public static class Program
+public class Program
 {
+    protected Program()
+    {
+    }
+
     public static async Task Main(string[] args)
     {
         var app = BuildApp(args);

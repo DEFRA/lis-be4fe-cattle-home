@@ -6,8 +6,8 @@ namespace Defra.Lis.Be4Fe.Api.Endpoints;
 
 using System.Reflection;
 using Defra.Lis.Be4Fe.Api.Config;
-using Defra.Lis.CattleHome.Foundation.Models;
-using Defra.Lis.CattleHome.Integrations.CattleApi;
+using Defra.Lis.Be4Fe.CattleApi;
+using Defra.Lis.Be4Fe.Models.Foundation.Models;
 
 public static class ModuleEndpoints
 {

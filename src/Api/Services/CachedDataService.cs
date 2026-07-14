@@ -5,7 +5,7 @@
 namespace Defra.Lis.Be4Fe.Api.Services;
 
 using Defra.Lis.Be4Fe.Api.Foundation.Caching;
-using Defra.Lis.CattleHome.Lookups.Models;
+using Defra.Lis.Be4Fe.Models.Lookups.Models;
 using Microsoft.Extensions.Options;
 
 public class CachedDataService(

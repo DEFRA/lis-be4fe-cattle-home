@@ -4,7 +4,7 @@
 
 namespace Defra.Lis.Be4Fe.Api.Services;
 
-using Defra.Lis.CattleHome.Lookups.Models;
+using Defra.Lis.Be4Fe.Models.Lookups.Models;
 
 public interface IUserLookupService
 {

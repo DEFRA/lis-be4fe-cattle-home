@@ -2,14 +2,14 @@
 // Copyright (c) Defra. All rights reserved.
 // </copyright>
 
-namespace Defra.Lis.CattleHome.Tests.Foundation.Endpoints;
+namespace Defra.Lis.Be4Fe.Api.Tests.Foundation.Endpoints;
 
-using Defra.Lis.CattleHome.Foundation.Models;
-using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Defra.Lis.Be4Fe.Api;
+using Defra.Lis.Be4Fe.Models.Foundation.Models;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 public class ModuleEndpointsTest : IClassFixture<WebApplicationFactory<Program>>
 {

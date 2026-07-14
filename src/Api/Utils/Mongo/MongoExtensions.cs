@@ -9,11 +9,11 @@ using MongoDB.Driver.Authentication.AWS;
 
 public static class MongoExtensions
 {
-    private static int s_initialized;
+    private static int initialized;
 
     public static void Register()
     {
-        if (Interlocked.Exchange(ref s_initialized, 1) == 1)
+        if (Interlocked.Exchange(ref initialized, 1) == 1)
         {
             return;
         }

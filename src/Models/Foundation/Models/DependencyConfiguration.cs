@@ -2,7 +2,7 @@
 // Copyright (c) Defra. All rights reserved.
 // </copyright>
 
-namespace Defra.Lis.CattleHome.Foundation.Models;
+namespace Defra.Lis.Be4Fe.Models.Foundation.Models;
 
 public sealed class DependencyConfiguration
 {

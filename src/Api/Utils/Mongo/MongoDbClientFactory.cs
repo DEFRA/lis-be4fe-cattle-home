@@ -19,8 +19,8 @@ public interface IMongoDbClientFactory
 [ExcludeFromCodeCoverage]
 public class MongoDbClientFactory : IMongoDbClientFactory
 {
-    private readonly IMongoDatabase _mongoDatabase;
-    private readonly IMongoClient _client;
+    private readonly IMongoDatabase mongoDatabase;
+    private readonly IMongoClient client;
 
     public MongoDbClientFactory(IOptions<MongoConfig> config)
     {
@@ -28,23 +28,27 @@ public class MongoDbClientFactory : IMongoDbClientFactory
         var databaseName = config.Value.DatabaseName;
 
         if (string.IsNullOrWhiteSpace(uri))
+        {
             throw new ArgumentException("MongoDB uri string cannot be empty");
+        }
 
         if (string.IsNullOrWhiteSpace(databaseName))
+        {
             throw new ArgumentException("MongoDB database name cannot be empty");
+        }
 
         var settings = MongoClientSettings.FromConnectionString(uri);
-        _client = new MongoClient(settings);
-        _mongoDatabase = _client.GetDatabase(databaseName);
+        client = new MongoClient(settings);
+        mongoDatabase = client.GetDatabase(databaseName);
     }
 
     public IMongoCollection<T> GetCollection<T>(string collection)
     {
-        return _mongoDatabase.GetCollection<T>(collection);
+        return mongoDatabase.GetCollection<T>(collection);
     }
 
     public IMongoClient GetClient()
     {
-        return _client;
+        return client;
     }
 }

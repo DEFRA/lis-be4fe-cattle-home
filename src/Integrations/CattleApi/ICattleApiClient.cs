@@ -2,7 +2,7 @@
 // Copyright (c) Defra. All rights reserved.
 // </copyright>
 
-namespace Defra.Lis.CattleHome.Integrations.CattleApi;
+namespace Defra.Lis.Be4Fe.CattleApi;
 
 public interface ICattleApiClient
 {

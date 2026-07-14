@@ -29,15 +29,6 @@ public static class AuditLogger
             .CreateLogger();
     }
 
-    [ExcludeFromCodeCoverage]
-    class EnrichAuditLog : ILogEventEnricher
-    {
-        public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
-        {
-            logEvent.AddOrUpdateProperty(propertyFactory.CreateProperty("log.level", "audit"));
-        }
-    }
-
     public static class Filters
     {
         [ExcludeFromCodeCoverage]
@@ -56,6 +47,15 @@ public static class AuditLogger
             {
                 return !logEvent.Properties.ContainsKey(AuditPropertyName);
             }
+        }
+    }
+
+    [ExcludeFromCodeCoverage]
+    private sealed class EnrichAuditLog : ILogEventEnricher
+    {
+        public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
+        {
+            logEvent.AddOrUpdateProperty(propertyFactory.CreateProperty("log.level", "audit"));
         }
     }
 }

@@ -2,7 +2,7 @@
 // Copyright (c) Defra. All rights reserved.
 // </copyright>
 
-namespace Defra.Lis.CattleHome.Lookups.Models;
+namespace Defra.Lis.Be4Fe.Models.Lookups.Models;
 
 public sealed class UserCph
 {

@@ -4,8 +4,8 @@
 
 namespace Defra.Lis.Be4Fe.Api.Services;
 
-using Defra.Lis.CattleHome.Integrations.CattleApi;
-using Defra.Lis.CattleHome.Lookups.Models;
+using Defra.Lis.Be4Fe.CattleApi;
+using Defra.Lis.Be4Fe.Models.Lookups.Models;
 
 public sealed partial class CattleLookupService(
     ICachedDataService cachedDataService,

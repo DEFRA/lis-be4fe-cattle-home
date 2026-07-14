@@ -5,7 +5,7 @@
 namespace Defra.Lis.Be4Fe.Api.Services;
 
 using Defra.Lis.Be4Fe.Api.Lookups.Providers;
-using Defra.Lis.CattleHome.Lookups.Models;
+using Defra.Lis.Be4Fe.Models.Lookups.Models;
 
 public sealed partial class UserLookupService(
     ICachedDataService cachedDataService,

@@ -1,4 +1,4 @@
-// <copyright file="ExternalDataCacheRepository.cs" company="Defra">
+// <copyright file="MongoExternalDataCacheRepository.cs" company="Defra">
 // Copyright (c) Defra. All rights reserved.
 // </copyright>
 
@@ -7,18 +7,6 @@ namespace Defra.Lis.Be4Fe.Api.Foundation.Caching;
 using System.Text.Json;
 using Defra.Lis.Be4Fe.Api.Utils.Mongo;
 using MongoDB.Driver;
-
-public interface IExternalDataCacheRepository
-{
-    Task<CacheLookupResult<T>?> GetAsync<T>(string cacheType, string cacheKey, CancellationToken cancellationToken = default);
-
-    Task SetAsync<T>(
-        string cacheType,
-        string cacheKey,
-        T value,
-        DateTimeOffset expiresAtUtc,
-        CancellationToken cancellationToken = default);
-}
 
 public sealed class MongoExternalDataCacheRepository : IExternalDataCacheRepository
 {
