@@ -1,8 +1,8 @@
 ﻿{
   "profiles": {
-    "CattleHome": {
+    "Development": {
       "commandName": "Project",
-      "dotnetRunMessages": false,
+      "dotnetRunMessages": true,
       "launchBrowser": false,
       "applicationUrl": "http://localhost:8085",
       "environmentVariables": {

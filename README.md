@@ -8,6 +8,7 @@ The current foundation is intentionally small:
 - MongoDB for interim and ephemeral state
 - short-lived lookup caching in MongoDB
 - fake KRDS and cattle providers behind interfaces that can be replaced later
+- JSON-backed cattle data behind `ICattleApiClient`, ready to be replaced by the downstream HTTP client
 
 ## Structure
 
@@ -37,6 +38,10 @@ The development profile wires:
 
 Update `CattleApi__BaseUrl` to match the local `api/cattle` host if it differs.
 
+Until the downstream cattle API is available, user CPH and cattle responses are read from
+`src/Api/Fixtures/CattleApi/cattle.json`. The path can be overridden with
+`CattleApi__FixturePath`; relative paths are resolved from the published application directory.
+
 ## Local container stack
 
 Bring up the API and MongoDB together:
@@ -49,7 +54,8 @@ docker compose up --build
 
 - `GET /` returns module metadata and whether Mongo and cattle API have been configured
 - `GET /health` returns the liveness check
-- `GET /openapi/v1.json` is available in development
+- `GET /openapi/v1.json` returns the OpenAPI v1 specification
+- `GET /swagger/index.html` opens the interactive Swagger UI
 - `GET /api/users/{userId}/cphs` returns CPHs for a user, using Mongo cache first
 - `GET /api/cphs/{cph}/cattle` returns cattle for a CPH, using Mongo cache first
 - `GET /api/cattle/{cattleId}` returns cattle details, using Mongo cache first

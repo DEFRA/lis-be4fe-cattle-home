@@ -4,12 +4,12 @@
 
 namespace Defra.Lis.Be4Fe.Api.Services;
 
-using Defra.Lis.Be4Fe.Api.Lookups.Providers;
+using Defra.Lis.Be4Fe.CattleApi;
 using Defra.Lis.Be4Fe.Models.Lookups.Models;
 
 public sealed partial class UserLookupService(
     ICachedDataService cachedDataService,
-    IUserCphProvider userCphProvider,
+    ICattleApiClient cattleApiClient,
     ILogger<UserLookupService> logger)
     : IUserLookupService
 {
@@ -29,7 +29,7 @@ public sealed partial class UserLookupService(
         }
 
         LogCacheMissForUserCphsRetrievingFromProviderUseridUserid(normalisedUserId);
-        var cphs = (await userCphProvider.GetCphsForUserAsync(normalisedUserId, cancellationToken)).ToList();
+        var cphs = (await cattleApiClient.GetCphsForUserAsync(normalisedUserId, cancellationToken)).ToList();
         LogRetrievedCountCphsForUserUseridUserid(cphs.Count, normalisedUserId);
 
         return await cachedDataService

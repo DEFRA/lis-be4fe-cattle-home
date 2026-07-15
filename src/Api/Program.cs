@@ -5,18 +5,23 @@
 namespace Defra.Lis.Be4Fe.Api;
 
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using Defra.Lis.Be4Fe.Api.Config;
 using Defra.Lis.Be4Fe.Api.Endpoints;
+using Defra.Lis.Be4Fe.Api.Endpoints.Cattle;
+using Defra.Lis.Be4Fe.Api.Endpoints.Cphs;
+using Defra.Lis.Be4Fe.Api.Endpoints.Health;
+using Defra.Lis.Be4Fe.Api.Endpoints.Users;
+using Defra.Lis.Be4Fe.Api.Exceptions;
 using Defra.Lis.Be4Fe.Api.Foundation.Caching;
-using Defra.Lis.Be4Fe.Api.Lookups.Providers;
 using Defra.Lis.Be4Fe.Api.Services;
 using Defra.Lis.Be4Fe.Api.Utils;
 using Defra.Lis.Be4Fe.Api.Utils.Http;
 using Defra.Lis.Be4Fe.Api.Utils.Logging;
 using Defra.Lis.Be4Fe.Api.Utils.Mongo;
 using Defra.Lis.Be4Fe.CattleApi;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;
+using Scalar.AspNetCore;
 using Serilog;
 
 public class Program
@@ -27,37 +32,70 @@ public class Program
 
     public static async Task Main(string[] args)
     {
-        var app = BuildApp(args);
+        var app = CreateWebApplication(args);
         await app.RunAsync();
     }
 
     [ExcludeFromCodeCoverage]
-    public static WebApplication BuildApp(string[] args)
+    private static WebApplication CreateWebApplication(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        ConfigureHost(builder);
-        ConfigureServices(builder);
+        builder.Configuration
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile(
+                $"appsettings.{builder.Environment.EnvironmentName}.json",
+                optional: true,
+                reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .AddCommandLine(args);
+
+        ConfigureBuilder(builder, builder.Configuration);
 
         var app = builder.Build();
-
-        ConfigureMiddleware(app);
-        ConfigureEndpoints(app);
-
-        return app;
+        return SetupApplication(app);
     }
 
     [ExcludeFromCodeCoverage]
-    private static void ConfigureHost(WebApplicationBuilder builder)
+    private static void ConfigureBuilder(
+        WebApplicationBuilder builder,
+        IConfigurationRoot configuration)
     {
+        // Configure logging to use the CDP Platform standards.
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddHealthChecks();
         builder.Host.UseSerilog(CdpLogging.Configuration);
-    }
+        builder.Services.AddProblemDetails();
+        builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+        builder.Services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+            options.SerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.SnakeCaseLower;
+        });
 
-    [ExcludeFromCodeCoverage]
-    private static void ConfigureServices(WebApplicationBuilder builder)
-    {
+        // Default HTTP Client
+        builder.Services
+            .AddHttpClient("DefaultClient")
+            .AddHeaderPropagation();
+
+        // Proxy HTTP Client
+        builder.Services.AddTransient<ProxyHttpMessageHandler>();
+        builder.Services
+            .AddHttpClient("proxy")
+            .ConfigurePrimaryHttpMessageHandler<ProxyHttpMessageHandler>();
+
+        // Propagate trace header.
+        builder.Services.AddHeaderPropagation(options =>
+        {
+            var traceHeader = builder.Configuration.GetValue<string>("TraceHeader");
+            if (!string.IsNullOrWhiteSpace(traceHeader))
+            {
+                options.Headers.Add(traceHeader);
+            }
+        });
+
         var services = builder.Services;
-        var configuration = builder.Configuration;
 
         // Trust material must be loaded before anything creates outbound connections.
         services.LoadCustomTrustStoreFromEnvironment();
@@ -115,8 +153,16 @@ public class Program
 
         services.AddSingleton<IExternalDataCacheRepository, MongoExternalDataCacheRepository>();
         services.AddSingleton<ICachedDataService, CachedDataService>();
-        services.AddSingleton<IUserCphProvider, FakeUserCphProvider>();
-        services.AddSingleton<ICattleApiClient, FakeCattleApiClient>();
+        services.AddSingleton<ICattleApiClient>(_ =>
+        {
+            var fixturePath = configuration.GetValue<string>($"{CattleApiOptions.SectionName}:FixturePath")
+                ?? throw new InvalidOperationException("CattleApi:FixturePath must be configured.");
+            var resolvedFixturePath = Path.IsPathRooted(fixturePath)
+                ? fixturePath
+                : Path.Combine(AppContext.BaseDirectory, fixturePath);
+
+            return new JsonCattleApiClient(resolvedFixturePath);
+        });
         services.AddSingleton<IUserLookupService, UserLookupService>();
         services.AddSingleton<ICphLookupService, CphLookupService>();
         services.AddSingleton<ICattleLookupService, CattleLookupService>();
@@ -157,26 +203,23 @@ public class Program
     }
 
     [ExcludeFromCodeCoverage]
-    private static void ConfigureMiddleware(WebApplication app)
+    private static WebApplication SetupApplication(WebApplication app)
     {
         app.UseSerilogRequestLogging();
-
         app.UseHeaderPropagation();
-    }
+        app.UseExceptionHandler();
+        app.UseRouting();
 
-    [ExcludeFromCodeCoverage]
-    private static void ConfigureEndpoints(WebApplication app)
-    {
         app.MapOpenApi("/openapi/{documentName}.json");
+        app.MapScalarApiReference();
         app.MapGet("/openapi", () => Results.Redirect("/openapi/v1.json"))
             .ExcludeFromDescription();
 
-        app.MapModuleEndpoints();
-        app.MapLivestockLookupEndpoints();
-        app.MapHealthChecks("/health", new HealthCheckOptions())
-            .WithName("GetHealth")
-            .WithTags("Health")
-            .WithSummary("Gets the service health status.")
-            .WithDescription("Returns the ASP.NET Core health status for this service.");
+        app.UseHealthEndpoints();
+        app.UseCattleEndpoints();
+        app.UseCphEndpoints();
+        app.UseUserEndpoints();
+
+        return app;
     }
 }

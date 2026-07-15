@@ -7,6 +7,7 @@ namespace Defra.Lis.Be4Fe.Api.Services;
 using Defra.Lis.Be4Fe.CattleApi;
 using Defra.Lis.Be4Fe.Models.Lookups.Models;
 
+/// <inheritdoc />
 public sealed partial class CattleLookupService(
     ICachedDataService cachedDataService,
     ICattleApiClient cattleApiClient,

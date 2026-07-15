@@ -4,8 +4,12 @@
 
 namespace Defra.Lis.Be4Fe.CattleApi;
 
+using Defra.Lis.Be4Fe.Models.Lookups.Models;
+
 public interface ICattleApiClient
 {
+    Task<IReadOnlyCollection<UserCph>> GetCphsForUserAsync(string userId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyCollection<CattleSummary>> GetCattleForCphAsync(string cph, CancellationToken cancellationToken = default);
 
     Task<CattleDetails> GetCattleDetailsAsync(string cattleId, CancellationToken cancellationToken = default);

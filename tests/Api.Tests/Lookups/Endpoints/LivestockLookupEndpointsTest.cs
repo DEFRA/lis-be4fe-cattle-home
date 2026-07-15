@@ -6,9 +6,9 @@ namespace Defra.Lis.Be4Fe.Api.Tests.Lookups.Endpoints;
 
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Defra.Lis.Be4Fe.Api;
 using Defra.Lis.Be4Fe.Api.Foundation.Caching;
-using Defra.Lis.Be4Fe.Api.Lookups.Providers;
 using Defra.Lis.Be4Fe.CattleApi;
 using Defra.Lis.Be4Fe.Models.Lookups.Models;
 using Microsoft.AspNetCore.Hosting;
@@ -19,6 +19,11 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 public class LivestockLookupEndpointsTest
 {
+    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    };
+
     [Fact]
     public async Task GetCphsForUserShouldCacheProviderResponse()
     {
@@ -27,9 +32,11 @@ public class LivestockLookupEndpointsTest
 
         var first = await client.GetFromJsonAsync<CachedLookupResponse<List<UserCph>>>(
             "/api/users/alice/cphs",
+            SerializerOptions,
             TestContext.Current.CancellationToken);
         var second = await client.GetFromJsonAsync<CachedLookupResponse<List<UserCph>>>(
             "/api/users/alice/cphs",
+            SerializerOptions,
             TestContext.Current.CancellationToken);
 
         first.ShouldNotBeNull();
@@ -38,7 +45,7 @@ public class LivestockLookupEndpointsTest
         second.Source.ShouldBe("cache");
         first.Data.Count.ShouldBe(2);
         second.Data.Count.ShouldBe(2);
-        factory.UserCphProvider.CallCount.ShouldBe(1);
+        factory.CattleApiClient.UserCallCount.ShouldBe(1);
     }
 
     [Fact]
@@ -47,8 +54,9 @@ public class LivestockLookupEndpointsTest
         await using var factory = new LookupTestFactory();
         var client = factory.CreateClient();
 
-        var response = await client.GetAsync("/api/cphs/12-345-6789/cattle", TestContext.Current.CancellationToken);
+        var response = await client.GetAsync("/api/cphs/12/345/6789/cattle", TestContext.Current.CancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<CachedLookupResponse<List<CattleSummary>>>(
+            SerializerOptions,
             TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -65,6 +73,7 @@ public class LivestockLookupEndpointsTest
 
         var response = await client.GetAsync("/api/cattle/animal-123", TestContext.Current.CancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<CachedLookupResponse<CattleDetails>>(
+            SerializerOptions,
             TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -75,19 +84,17 @@ public class LivestockLookupEndpointsTest
 
     private sealed class LookupTestFactory : WebApplicationFactory<Program>
     {
-        public TestUserCphProvider UserCphProvider { get; } = new();
+        public TestCattleApiClient CattleApiClient { get; } = new();
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureTestServices(services =>
             {
                 services.RemoveAll<IExternalDataCacheRepository>();
-                services.RemoveAll<IUserCphProvider>();
                 services.RemoveAll<ICattleApiClient>();
 
                 services.AddSingleton<IExternalDataCacheRepository, InMemoryExternalDataCacheRepository>();
-                services.AddSingleton<IUserCphProvider>(UserCphProvider);
-                services.AddSingleton<ICattleApiClient, TestCattleApiClient>();
+                services.AddSingleton<ICattleApiClient>(CattleApiClient);
             });
         }
     }
@@ -131,13 +138,13 @@ public class LivestockLookupEndpointsTest
         }
     }
 
-    private sealed class TestUserCphProvider : IUserCphProvider
+    private sealed class TestCattleApiClient : ICattleApiClient
     {
-        public int CallCount { get; private set; }
+        public int UserCallCount { get; private set; }
 
         public Task<IReadOnlyCollection<UserCph>> GetCphsForUserAsync(string userId, CancellationToken cancellationToken = default)
         {
-            CallCount++;
+            UserCallCount++;
 
             return Task.FromResult<IReadOnlyCollection<UserCph>>(
             [
@@ -145,10 +152,7 @@ public class LivestockLookupEndpointsTest
                 new UserCph { Cph = "98/765/4321", Name = $"{userId} Secondary" },
             ]);
         }
-    }
 
-    private sealed class TestCattleApiClient : ICattleApiClient
-    {
         public Task<IReadOnlyCollection<CattleSummary>> GetCattleForCphAsync(string cph, CancellationToken cancellationToken = default)
         {
             return Task.FromResult<IReadOnlyCollection<CattleSummary>>(

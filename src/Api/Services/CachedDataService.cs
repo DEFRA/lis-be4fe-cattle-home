@@ -4,6 +4,7 @@
 
 namespace Defra.Lis.Be4Fe.Api.Services;
 
+using System.Collections;
 using Defra.Lis.Be4Fe.Api.Foundation.Caching;
 using Defra.Lis.Be4Fe.Models.Lookups.Models;
 using Microsoft.Extensions.Options;
@@ -50,6 +51,16 @@ public class CachedDataService(
         string source,
         CancellationToken cancellationToken)
     {
+        if (!HasData(value))
+        {
+            return new CachedLookupResponse<T>
+            {
+                Source = source,
+                CachedUntilUtc = null,
+                Data = value,
+            };
+        }
+
         var cachedUntilUtc = timeProvider.GetUtcNow().AddMinutes(cacheOptions.Value.DurationMinutes);
 
         try
@@ -67,5 +78,29 @@ public class CachedDataService(
             CachedUntilUtc = cachedUntilUtc,
             Data = value,
         };
+    }
+
+    private static bool HasData<T>(T value)
+    {
+        if (value is null)
+        {
+            return false;
+        }
+
+        if (value is not IEnumerable enumerable)
+        {
+            return true;
+        }
+
+        var enumerator = enumerable.GetEnumerator();
+
+        try
+        {
+            return enumerator.MoveNext();
+        }
+        finally
+        {
+            (enumerator as IDisposable)?.Dispose();
+        }
     }
 }

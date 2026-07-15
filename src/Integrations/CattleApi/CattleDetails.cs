@@ -19,4 +19,14 @@ public sealed class CattleDetails
     public required DateOnly DateOfBirth { get; init; }
 
     public required string Status { get; init; }
+
+    public string? DamType { get; init; }
+
+    public string? GeneticDamTag { get; init; }
+
+    public string? SurrogateTag { get; init; }
+
+    public string? SireTag { get; init; }
+
+    public string? SireName { get; init; }
 }
