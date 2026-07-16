@@ -1,0 +1,14 @@
+// <copyright file="CattleApiOptions.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
+namespace Defra.Lis.Be4Fe.CattleApi;
+
+public sealed class CattleApiOptions
+{
+    public const string SectionName = "CattleApi";
+
+    public string? BaseUrl { get; init; }
+
+    public string FixturePath { get; init; } = "Fixtures/CattleApi/cattle.json";
+}

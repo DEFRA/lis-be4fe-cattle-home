@@ -1,0 +1,327 @@
+{
+  "users": [
+    {
+      "userId": "cedric.brasey@planet-side.co.uk",
+      "holdings": [
+        {
+          "group_name": "My farm",
+          "cphs": [
+            {
+              "cph": "10/081/1234",
+              "allowedSpecies": ["ctt", "shp"],
+              "postcode": "MK11 1AA",
+              "latitude": 52.0565016,
+              "longitude": -0.854785
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "userId": "cedric.brasey@esynergy.co.uk",
+      "holdings": [
+      {
+        "group_name": "My farm",
+        "cphs": [
+          {
+            "cph": "10/091/1234",
+            "allowedSpecies": ["ctt"],
+            "postcode": "MK11 1EU",
+            "latitude": 52.0520795,
+            "longitude": -0.8526032
+          },
+          {
+            "cph": "10/091/3567",
+            "allowedSpecies": ["gt"],
+            "postcode": "MK11 1EP",
+            "latitude": 52.0540169,
+            "longitude": -0.8492825
+          },
+          {
+            "cph": "11/081/1234",
+            "allowedSpecies": ["chk"],
+            "postcode": "MK11 1HX",
+            "latitude": 52.0484416,
+            "longitude": -0.8479074
+          }
+        ]
+      },
+      {
+        "group_name": "My other farm",
+        "cphs": [
+          {
+            "cph": "11/081/8567",
+            "allowedSpecies": ["gt"],
+            "postcode": "MK11 4DQ",
+            "latitude": 52.0478853,
+            "longitude": -0.8423852
+          },
+          {
+            "cph": "12/091/6278",
+            "allowedSpecies": ["ctt"],
+            "postcode": "MK11 2AA",
+            "latitude": 52.0507392,
+            "longitude": -0.8388385
+          },
+          {
+            "cph": "12/091/9576",
+            "allowedSpecies": ["ctt"],
+            "postcode": "MK11 2AE",
+            "latitude": 52.0500573,
+            "longitude": -0.8363939
+          }
+        ]
+      }
+    ]
+    }
+  ],
+  "cattle": [
+    {
+      "eartag": "UK123456100001",
+      "cph": "10/081/1234",
+      "breed": "HF",
+      "dob": "2024-01-15",
+      "sex": "Female",
+      "dam_type": "genetic",
+      "genetic_dam_tag": "UK123456090101",
+      "surrogate_tag": "",
+      "sire_tag": "UK654321080201",
+      "sire_name": "",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100002",
+      "cph": "10/081/1234",
+      "breed": "AA",
+      "dob": "2024-02-03",
+      "sex": "Male",
+      "dam_type": "genetic",
+      "genetic_dam_tag": "UK123456090102",
+      "surrogate_tag": "",
+      "sire_tag": "UK654321080202",
+      "sire_name": "Angus",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100003",
+      "cph": "10/081/1234",
+      "breed": "JE",
+      "dob": "2024-02-20",
+      "sex": "Female",
+      "dam_type": "genetic",
+      "genetic_dam_tag": "UK123456090103",
+      "surrogate_tag": "",
+      "sire_tag": "UK654321080203",
+      "sire_name": "",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100004",
+      "cph": "10/081/1234",
+      "breed": "HE",
+      "dob": "2024-03-01",
+      "sex": "Male",
+      "dam_type": "genetic",
+      "genetic_dam_tag": "UK123456090104",
+      "surrogate_tag": "",
+      "sire_tag": "UK654321080204",
+      "sire_name": "",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100005",
+      "cph": "10/081/1234",
+      "breed": "SM",
+      "dob": "2024-03-18",
+      "sex": "Female",
+      "dam_type": "surrogate",
+      "genetic_dam_tag": "UK123456090105",
+      "surrogate_tag": "UK123456070501",
+      "sire_name": "Molly",
+      "sire_tag": "AI-SIM-001",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100006",
+      "cph": "10/081/1234",
+      "breed": "LIM",
+      "dob": "2024-04-05",
+      "sex": "Male",
+      "dam_type": "genetic",
+      "genetic_dam_tag": "UK123456090106",
+      "surrogate_tag": "",
+      "sire_tag": "",
+      "sire_name": "Bruno",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100007",
+      "cph": "10/081/1234",
+      "breed": "BS",
+      "dob": "2024-04-22",
+      "sex": "Female",
+      "dam_type": "genetic",
+      "surrogate_tag": "",
+      "genetic_dam_tag": "UK123456090107",
+      "sire_tag": "",
+      "sire_name": "Hazmat",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100008",
+      "cph": "10/081/1234",
+      "breed": "CH",
+      "dob": "2024-05-10",
+      "sex": "Male",
+      "dam_type": "genetic",
+      "genetic_dam_tag": "UK123456090108",
+      "surrogate_tag": "",
+      "sire_tag": "UK654321080208",
+      "sire_name": "Titan",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100009",
+      "cph": "10/081/1234",
+      "breed": "GU",
+      "dob": "2024-05-25",
+      "sex": "Female",
+      "dam_type": "surrogate",
+      "surrogate_tag": "UK123456070509",
+      "genetic_dam_tag": "UK123456090109",
+      "sire_tag": "UK123457090109",
+      "sire_name": "Rose",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100010",
+      "cph": "10/081/1234",
+      "breed": "NDS",
+      "dob": "2024-06-12",
+      "sex": "Female",
+      "dam_type": "genetic",
+      "genetic_dam_tag": "UK123456090110",
+      "surrogate_tag": "",
+      "sire_tag": "UK654321080210",
+      "sire_name": "",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100011",
+      "cph": "10/091/1234",
+      "breed": "HF",
+      "dob": "2024-06-25",
+      "sex": "Female",
+      "dam_type": "genetic",
+      "genetic_dam_tag": "UK123456090111",
+      "surrogate_tag": "",
+      "sire_tag": "",
+      "sire_name": "",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100012",
+      "cph": "10/091/1234",
+      "breed": "AA",
+      "dob": "2024-07-04",
+      "sex": "Male",
+      "dam_type": "genetic",
+      "surrogate_tag": "",
+      "genetic_dam_tag": "UK123456090112",
+      "sire_tag": "",
+      "sire_name": "",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100013",
+      "cph": "10/091/1234",
+      "breed": "JE",
+      "dob": "2024-07-19",
+      "sex": "Female",
+      "dam_type": "genetic",
+      "genetic_dam_tag": "UK123456090113",
+      "surrogate_tag": "",
+      "sire_tag": "AI-JER-005",
+      "sire_name": "Poppy",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100014",
+      "cph": "12/091/6278",
+      "breed": "HE",
+      "dob": "2024-08-02",
+      "sex": "Male",
+      "dam_type": "genetic",
+      "genetic_dam_tag": "UK123456090114",
+      "surrogate_tag": "",
+      "sire_tag": "UK654321080214",
+      "sire_name": "Buster",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100015",
+      "cph": "12/091/6278",
+      "breed": "SM",
+      "dob": "2024-08-17",
+      "sex": "Female",
+      "dam_type": "surrogate",
+      "genetic_dam_tag": "UK123456090115",
+      "surrogate_tag": "UK123456070515",
+      "sire_tag": "",
+      "sire_name": "Wilson",
+      "status": "draft"
+    },
+    {
+      "eartag": "UK123456100016",
+      "cph": "12/091/6278",
+      "breed": "LIM",
+      "dob": "2024-09-01",
+      "sex": "Male",
+      "dam_type": "genetic",
+      "genetic_dam_tag": "UK123456090116",
+      "surrogate_tag": "",
+      "sire_tag": "UK654321080216",
+      "sire_name": "Max",
+      "status": "draft"
+    },
+    {
+      "eartag": "UK123456100017",
+      "cph": "12/091/9576",
+      "breed": "BS",
+      "dob": "2024-09-14",
+      "sex": "Female",
+      "dam_type": "genetic",
+      "genetic_dam_tag": "UK123456090117",
+      "surrogate_tag": "",
+      "sire_tag": "",
+      "sire_name": "",
+      "status": "saved"
+    },
+    {
+      "eartag": "UK123456100018",
+      "cph": "12/091/9576",
+      "breed": "CH",
+      "dob": "2024-10-03",
+      "sex": "Male",
+      "dam_type": "genetic",
+      "genetic_dam_tag": "UK123456090118",
+      "surrogate_tag": "",
+      "sire_tag": "UK654321080218",
+      "sire_name": "Duke",
+      "status": "draft"
+    },
+    {
+      "eartag": "UK123456100019",
+      "cph": "12/091/9576",
+      "breed": "GU",
+      "dob": "2024-10-21",
+      "sex": "Female",
+      "dam_type": "surrogate",
+      "genetic_dam_tag": "UK123456090119",
+      "surrogate_tag": "UK123456070519",
+      "sire_tag": "AI-GUE-008",
+      "sire_name": "Ivy",
+      "status": "saved"
+    }
+  ]
+}
