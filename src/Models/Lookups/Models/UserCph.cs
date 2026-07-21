@@ -10,7 +10,17 @@ public sealed class UserCph
 
     public required string Name { get; init; }
 
+    public required string BusinessName { get; init; }
+
+    public IReadOnlyCollection<string> Address { get; init; } = [];
+
     public IReadOnlyCollection<string> AllowedSpecies { get; init; } = [];
+
+    public string? HoldingType { get; init; }
+
+    public string? RegisteredKeeper { get; init; }
+
+    public IReadOnlyCollection<string> HerdMarks { get; init; } = [];
 
     public string? Postcode { get; init; }
 
