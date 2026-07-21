@@ -15,7 +15,19 @@ public sealed class JsonCattleApiClientTest
         var result = await client.GetCphsForUserAsync("CEDRIC.BRASEY@ESYNERGY.CO.UK", TestContext.Current.CancellationToken);
 
         result.Count.ShouldBe(6);
-        result.First().Name.ShouldBe("My farm");
+        result.First().Name.ShouldBe("Fairfield Farm");
+        result.First().BusinessName.ShouldBe("Fairfield Livestock Ltd");
+        result.First().Address.ShouldBe([
+            "Fairfield Farm",
+            "Manor Road",
+            "Lavendon",
+            "Buckinghamshire",
+            "MK1 1AA",
+            "England",
+        ]);
+        result.First().HoldingType.ShouldBe("Permanent");
+        result.First().RegisteredKeeper.ShouldBe("Bob McDougle");
+        result.First().HerdMarks.ShouldBe(["UK 324787"]);
         result.First().AllowedSpecies.ShouldBe(["ctt"]);
         result.First().Postcode.ShouldBe("MK11 1EU");
         result.Last().Name.ShouldBe("My other farm");
@@ -28,6 +40,7 @@ public sealed class JsonCattleApiClientTest
 
         result.Count.ShouldBe(10);
         result.First().CattleId.ShouldBe("UK123456100001");
+        result.First().Status.ShouldBe("saved");
     }
 
     [Fact]

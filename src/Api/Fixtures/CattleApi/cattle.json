@@ -1,14 +1,31 @@
 {
   "users": [
     {
-      "userId": "cedric.brasey@planet-side.co.uk",
+      "userId": "oakfield.farmer@oakhill-farms.co.uk",
       "holdings": [
         {
-          "group_name": "My farm",
+          "group_name": "Oakfield Farm",
+          "business_name": "Oakfield Livestock Ltd",
+          "address": [
+            "Oakfield Farm",
+            "Church Lane",
+            "Shrewsbury",
+            "Shropshire",
+            "SY4 1AB",
+            "England"
+          ],
+          "holding_type": "Permanent",
+          "registered_keeper": "James Williams",
+          "herd_marks": [
+            "UK 324537"
+          ],
           "cphs": [
             {
               "cph": "10/081/1234",
-              "allowedSpecies": ["ctt", "shp"],
+              "allowedSpecies": [
+                "ctt",
+                "shp"
+              ],
               "postcode": "MK11 1AA",
               "latitude": 52.0565016,
               "longitude": -0.854785
@@ -18,10 +35,21 @@
       ]
     },
     {
-      "userId": "cedric.brasey@esynergy.co.uk",
+      "userId": "fairfield.farmer@fairfield-farms.co.uk",
       "holdings": [
       {
-        "group_name": "My farm",
+        "group_name": "Fairfield Farm",
+        "business_name": "Fairfield Livestock Ltd",
+        "address":[
+          "Fairfield Farm",
+          "Manor Road",
+          "Lavendon",
+          "Buckinghamshire",
+          "MK1 1AA",
+          "England"],
+        "holding_type":	"Permanent",
+        "registered_keeper": "Bob McDougle",
+        "herd_marks":["UK 324787"],
         "cphs": [
           {
             "cph": "10/091/1234",
@@ -43,32 +71,6 @@
             "postcode": "MK11 1HX",
             "latitude": 52.0484416,
             "longitude": -0.8479074
-          }
-        ]
-      },
-      {
-        "group_name": "My other farm",
-        "cphs": [
-          {
-            "cph": "11/081/8567",
-            "allowedSpecies": ["gt"],
-            "postcode": "MK11 4DQ",
-            "latitude": 52.0478853,
-            "longitude": -0.8423852
-          },
-          {
-            "cph": "12/091/6278",
-            "allowedSpecies": ["ctt"],
-            "postcode": "MK11 2AA",
-            "latitude": 52.0507392,
-            "longitude": -0.8388385
-          },
-          {
-            "cph": "12/091/9576",
-            "allowedSpecies": ["ctt"],
-            "postcode": "MK11 2AE",
-            "latitude": 52.0500573,
-            "longitude": -0.8363939
           }
         ]
       }

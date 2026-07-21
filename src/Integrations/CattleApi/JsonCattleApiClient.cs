@@ -44,6 +44,11 @@ public sealed class JsonCattleApiClient : ICattleApiClient
             {
                 Cph = cph.Cph,
                 Name = holding.GroupName,
+                BusinessName = holding.BusinessName,
+                Address = holding.Address,
+                HoldingType = holding.HoldingType,
+                RegisteredKeeper = holding.RegisteredKeeper,
+                HerdMarks = holding.HerdMarks,
                 AllowedSpecies = cph.AllowedSpecies,
                 Postcode = cph.Postcode,
                 Latitude = cph.Latitude,
@@ -69,6 +74,7 @@ public sealed class JsonCattleApiClient : ICattleApiClient
                 Eartag = entry.Eartag,
                 Breed = entry.Breed,
                 Sex = entry.Sex,
+                Status = entry.Status,
             })
             .ToList();
 
@@ -123,6 +129,11 @@ public sealed class JsonCattleApiClient : ICattleApiClient
 
     private sealed record HoldingFixture(
         [property: JsonPropertyName("group_name")] string GroupName,
+        [property: JsonPropertyName("business_name")] string BusinessName,
+        IReadOnlyCollection<string> Address,
+        [property: JsonPropertyName("holding_type")] string HoldingType,
+        [property: JsonPropertyName("registered_keeper")] string RegisteredKeeper,
+        [property: JsonPropertyName("herd_marks")] IReadOnlyCollection<string> HerdMarks,
         IReadOnlyCollection<CphFixture> Cphs);
 
     private sealed record CphFixture(

@@ -45,6 +45,11 @@ public class LivestockLookupEndpointsTest
         second.Source.ShouldBe("cache");
         first.Data.Count.ShouldBe(2);
         second.Data.Count.ShouldBe(2);
+        first.Data[0].BusinessName.ShouldBe("Alice Primary Livestock Ltd");
+        first.Data[0].Address.ShouldBe(["1 Farm Lane", "Shrewsbury", "SY1 1AA"]);
+        first.Data[0].HoldingType.ShouldBe("Permanent");
+        first.Data[0].RegisteredKeeper.ShouldBe("Alice Keeper");
+        first.Data[0].HerdMarks.ShouldBe(["UK 123456"]);
         factory.CattleApiClient.UserCallCount.ShouldBe(1);
     }
 
@@ -148,8 +153,22 @@ public class LivestockLookupEndpointsTest
 
             return Task.FromResult<IReadOnlyCollection<UserCph>>(
             [
-                new UserCph { Cph = "12/345/6789", Name = $"{userId} Primary" },
-                new UserCph { Cph = "98/765/4321", Name = $"{userId} Secondary" },
+                new UserCph
+                {
+                    Cph = "12/345/6789",
+                    Name = $"{userId} Primary",
+                    BusinessName = "Alice Primary Livestock Ltd",
+                    Address = ["1 Farm Lane", "Shrewsbury", "SY1 1AA"],
+                    HoldingType = "Permanent",
+                    RegisteredKeeper = "Alice Keeper",
+                    HerdMarks = ["UK 123456"],
+                },
+                new UserCph
+                {
+                    Cph = "98/765/4321",
+                    Name = $"{userId} Secondary",
+                    BusinessName = "Alice Secondary Livestock Ltd",
+                },
             ]);
         }
 
@@ -157,8 +176,8 @@ public class LivestockLookupEndpointsTest
         {
             return Task.FromResult<IReadOnlyCollection<CattleSummary>>(
             [
-                new CattleSummary { CattleId = $"{cph}-001", Eartag = "UK123", Breed = "Angus", Sex = "Female" },
-                new CattleSummary { CattleId = $"{cph}-002", Eartag = "UK124", Breed = "Hereford", Sex = "Male" },
+                new CattleSummary { CattleId = $"{cph}-001", Eartag = "UK123", Breed = "Angus", Sex = "Female", Status = "saved" },
+                new CattleSummary { CattleId = $"{cph}-002", Eartag = "UK124", Breed = "Hereford", Sex = "Male", Status = "draft" },
             ]);
         }
 
