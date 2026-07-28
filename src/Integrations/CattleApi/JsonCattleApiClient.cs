@@ -73,6 +73,7 @@ public sealed class JsonCattleApiClient : ICattleApiClient
                 CattleId = entry.Eartag,
                 Eartag = entry.Eartag,
                 Breed = entry.Breed,
+                DateOfBirth = entry.DateOfBirth,
                 Sex = entry.Sex,
                 Status = entry.Status,
             })

@@ -12,9 +12,11 @@ public sealed class JsonCattleApiClientTest
     [Fact]
     public async Task GetCphsForUserShouldReturnMatchingFixtureEntries()
     {
-        var result = await client.GetCphsForUserAsync("CEDRIC.BRASEY@ESYNERGY.CO.UK", TestContext.Current.CancellationToken);
+        var result = await client.GetCphsForUserAsync(
+            "FAIRFIELD.FARMER@FAIRFIELD-FARMS.CO.UK",
+            TestContext.Current.CancellationToken);
 
-        result.Count.ShouldBe(6);
+        result.Count.ShouldBe(3);
         result.First().Name.ShouldBe("Fairfield Farm");
         result.First().BusinessName.ShouldBe("Fairfield Livestock Ltd");
         result.First().Address.ShouldBe([
@@ -30,7 +32,7 @@ public sealed class JsonCattleApiClientTest
         result.First().HerdMarks.ShouldBe(["UK 324787"]);
         result.First().AllowedSpecies.ShouldBe(["ctt"]);
         result.First().Postcode.ShouldBe("MK11 1EU");
-        result.Last().Name.ShouldBe("My other farm");
+        result.Last().Name.ShouldBe("Fairfield Farm");
     }
 
     [Fact]
@@ -40,6 +42,7 @@ public sealed class JsonCattleApiClientTest
 
         result.Count.ShouldBe(10);
         result.First().CattleId.ShouldBe("UK123456100001");
+        result.First().DateOfBirth.ShouldBe(new DateOnly(2024, 1, 15));
         result.First().Status.ShouldBe("saved");
     }
 

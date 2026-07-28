@@ -12,6 +12,8 @@ public sealed class CattleSummary
 
     public required string Breed { get; init; }
 
+    public required DateOnly DateOfBirth { get; init; }
+
     public required string Sex { get; init; }
 
     public required string Status { get; init; }
