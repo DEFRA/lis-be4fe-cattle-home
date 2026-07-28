@@ -176,8 +176,8 @@ public class LivestockLookupEndpointsTest
         {
             return Task.FromResult<IReadOnlyCollection<CattleSummary>>(
             [
-                new CattleSummary { CattleId = $"{cph}-001", Eartag = "UK123", Breed = "Angus", Sex = "Female", Status = "saved" },
-                new CattleSummary { CattleId = $"{cph}-002", Eartag = "UK124", Breed = "Hereford", Sex = "Male", Status = "draft" },
+                new CattleSummary { CattleId = $"{cph}-001", Eartag = "UK123", Breed = "Angus", DateOfBirth = new DateOnly(2024, 1, 15), Sex = "Female", Status = "saved" },
+                new CattleSummary { CattleId = $"{cph}-002", Eartag = "UK124", Breed = "Hereford", DateOfBirth = new DateOnly(2024, 2, 3), Sex = "Male", Status = "draft" },
             ]);
         }
 
