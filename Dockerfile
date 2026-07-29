@@ -4,6 +4,7 @@ WORKDIR /
 COPY . .
 WORKDIR "/"
 RUN dotnet restore be4fe-cattle-home.slnx
+RUN dotnet test be4fe-cattle-home.slnx --no-restore
 RUN dotnet publish src/Api/Api.csproj -c Release -o /app/publish /p:UseAppHost=false --no-restore
 
 # Final production image
