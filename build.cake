@@ -10,7 +10,7 @@ var imageRef = Argument("image_ref", EnvironmentVariable("IMAGE_REF") ?? "");
 var revision = Argument("revision", EnvironmentVariable("REVISION") ?? "");
 private readonly string SOLUTION_FILE = GetSolutionFile();
 private const string CONFIGURATION = "release";
-private const DotNetVerbosity VERBOSITY = DotNetVerbosity.Normal;
+private const DotNetVerbosity VERBOSITY = DotNetVerbosity.Minimal;
 
 string RequiredValue(string value, string name)
 {

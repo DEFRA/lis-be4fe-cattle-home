@@ -25,7 +25,7 @@ RUN dotnet publish src/Api -c Release -o /app/publish /p:UseAppHost=false
 ENV ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
 
 # Final production image
-FROM base AS final
+FROM base AS production
 WORKDIR /app
 COPY --from=publish /app/publish .
 EXPOSE 8085
