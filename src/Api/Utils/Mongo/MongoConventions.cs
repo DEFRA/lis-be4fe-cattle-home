@@ -8,11 +8,11 @@ using MongoDB.Bson.Serialization.Conventions;
 
 public static class MongoConventions
 {
-    private static int Initialized;
+    private static int initialized;
 
     public static void Register()
     {
-        if (Interlocked.Exchange(ref Initialized, 1) == 1)
+        if (Interlocked.Exchange(ref initialized, 1) == 1)
         {
             return;
         }

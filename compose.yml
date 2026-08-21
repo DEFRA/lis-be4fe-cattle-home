@@ -12,7 +12,7 @@ services:
   cattle-home:
     build: ./
     ports:
-      - '8085:8085'
+      - '3225:8085'
     links:
       - 'mongodb:mongodb'
     depends_on:
@@ -22,7 +22,7 @@ services:
       ASPNETCORE_URLS: http://+:8085
       Mongo__DatabaseUri: mongodb://mongodb:27017/
       Mongo__DatabaseName: lis-be4fe-cattle-home
-      CattleApi__BaseUrl: http://host.docker.internal:5000
+      CattleApi__BaseUrl: http://host.docker.internal:3250
     networks:
       - cdp-tenant
 
