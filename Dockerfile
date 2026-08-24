@@ -1,22 +1,29 @@
-﻿# Build stage image
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-WORKDIR /
+﻿ARG PARENT_VERSION=10.0
+ARG PORT=8085
+
+# Build stage image
+FROM mcr.microsoft.com/dotnet/sdk:${PARENT_VERSION} AS build
+WORKDIR /src
 COPY . .
-WORKDIR "/"
-RUN dotnet restore be4fe-cattle-home.slnx
-RUN dotnet test be4fe-cattle-home.slnx --no-restore
-RUN dotnet publish src/Api/Api.csproj -c Release -o /app/publish /p:UseAppHost=false --no-restore
+WORKDIR "/src"
+RUN dotnet test be4fe-cattle-home.slnx
+RUN dotnet publish src/Api -c Release -o /app/publish /p:UseAppHost=false
 
 # Final production image
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 
+FROM mcr.microsoft.com/dotnet/aspnet:${PARENT_VERSION} AS production
+ARG PORT 
 WORKDIR /app
 
 # Add curl to template, CDP PLATFORM HEALTHCHECK REQUIREMENT
 RUN apt update && \
-    apt install curl -y && \
-    apt-get clean && \
+    apt --no-install-recommends install curl -y && \
+    apt-get --no-install-recommends clean && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/publish .
-EXPOSE 8085
+EXPOSE ${PORT}
+ENV ASPNETCORE_URLS=http://+:${PORT}
+
+USER $APP_UID
+
 ENTRYPOINT ["dotnet", "Defra.Lis.Be4Fe.Api.dll"]

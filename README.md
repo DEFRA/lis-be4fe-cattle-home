@@ -34,7 +34,7 @@ The development profile wires:
 
 - `Mongo__DatabaseUri=mongodb://127.0.0.1:27017/`
 - `Mongo__DatabaseName=lis-be4fe-cattle-home`
-- `CattleApi__BaseUrl=http://localhost:5000`
+- `CattleApi__BaseUrl=http://localhost:3250`
 
 Update `CattleApi__BaseUrl` to match the local `api/cattle` host if it differs.
 

@@ -1,4 +1,4 @@
-// <copyright file="CphEndpoints.cs" company="Defra">
+// <copyright file="CphsEndpoints.cs" company="Defra">
 // Copyright (c) Defra. All rights reserved.
 // </copyright>
 
