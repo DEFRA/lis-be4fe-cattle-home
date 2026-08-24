@@ -83,8 +83,7 @@ jobs:
         run: |
           container=$(docker run \
             --detach \
-            --env PORT=3000 \
-            --env SESSION_CACHE_ENGINE=memory \
+            --env ASPNETCORE_URLS=http://+:3000 \
             --publish 3101:3000 \
             "$IMAGE")
 
