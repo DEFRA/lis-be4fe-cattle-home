@@ -60,28 +60,6 @@ public sealed class JsonCattleApiClient : ICattleApiClient
         return Task.FromResult<IReadOnlyCollection<UserCph>>(result);
     }
 
-    public Task<IReadOnlyCollection<CattleSummary>> GetCattleForCphAsync(
-        string cph,
-        CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        var normalisedCph = NormaliseCph(cph);
-        var result = cattle
-            .Where(entry => NormaliseCph(entry.Cph) == normalisedCph)
-            .Select(entry => new CattleSummary
-            {
-                CattleId = entry.Eartag,
-                Eartag = entry.Eartag,
-                Breed = entry.Breed,
-                DateOfBirth = entry.DateOfBirth,
-                Sex = entry.Sex,
-                Status = entry.Status,
-            })
-            .ToList();
-
-        return Task.FromResult<IReadOnlyCollection<CattleSummary>>(result);
-    }
-
     public Task<CattleDetails> GetCattleDetailsAsync(
         string cattleId,
         CancellationToken cancellationToken = default)
@@ -110,11 +88,6 @@ public sealed class JsonCattleApiClient : ICattleApiClient
             };
 
         return Task.FromResult(result ?? throw new KeyNotFoundException($"Cattle '{cattleId}' was not found in the fixture data."));
-    }
-
-    private static string NormaliseCph(string value)
-    {
-        return new string(value.Where(char.IsDigit).ToArray());
     }
 
     private static string NormaliseCattleId(string value)

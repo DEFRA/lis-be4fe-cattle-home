@@ -12,7 +12,13 @@ public sealed class CattleSummary
 
     public required string Breed { get; init; }
 
-    public required DateOnly DateOfBirth { get; init; }
+    public string? BreedCode { get; init; }
+
+    public string? BreedName { get; init; }
+
+    public DateOnly? DateOfBirth { get; init; }
+
+    public DateOnly? DateOnCph { get; init; }
 
     public required string Sex { get; init; }
 
