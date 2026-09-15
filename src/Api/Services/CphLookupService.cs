@@ -7,38 +7,26 @@ namespace Defra.Lis.Be4Fe.Api.Services;
 using Defra.Lis.Be4Fe.CattleApi;
 using Defra.Lis.Be4Fe.Models.Lookups.Models;
 
+/// <summary>
+/// Cattle on a holding, passed straight through to the cattle API (no caching in this phase).
+/// </summary>
 public sealed partial class CphLookupService(
-    ICachedDataService cachedDataService,
-    ICattleApiClient cattleApiClient,
+    ICattleHoldingClient cattleHoldingClient,
     ILogger<CphLookupService> logger)
     : ICphLookupService
 {
-    public async Task<CachedLookupResponse<List<CattleSummary>>> GetCattleForCphAsync(string cph, CancellationToken cancellationToken = default)
+    public async Task<CachedLookupResponse<List<CattleSummary>>> GetCattleForCphAsync(string cph, CattleSearchQuery? query = null, CancellationToken cancellationToken = default)
     {
         var normalisedCph = Normalise(cph);
-        var cached = await cachedDataService
-            .TryGetCachedAsync<List<CattleSummary>>(
-                "cph-cattle",
-                normalisedCph,
-                cancellationToken);
-
-        if (cached is not null)
-        {
-            LogCacheHitForCphCattleCphCph(normalisedCph);
-            return cached;
-        }
-
-        LogCacheMissForCphCattleRetrievingFromApiCphCph(normalisedCph);
-        var cattle = (await cattleApiClient.GetCattleForCphAsync(normalisedCph, cancellationToken)).ToList();
+        var cattle = (await cattleHoldingClient.SearchCattleAsync(normalisedCph, query ?? new CattleSearchQuery(), cancellationToken)).ToList();
         LogRetrievedCountCattleForCphCphCph(cattle.Count, normalisedCph);
 
-        return await cachedDataService
-            .StoreAndWrapAsync(
-                "cph-cattle",
-                normalisedCph,
-                cattle,
-                "cattle",
-                cancellationToken);
+        return new CachedLookupResponse<List<CattleSummary>>
+        {
+            Source = LookupSources.CattleApi,
+            CachedUntilUtc = null,
+            Data = cattle,
+        };
     }
 
     private static string Normalise(string value)

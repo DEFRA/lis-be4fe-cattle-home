@@ -9,5 +9,5 @@ using Defra.Lis.Be4Fe.Models.Lookups.Models;
 
 public interface ICphLookupService
 {
-    Task<CachedLookupResponse<List<CattleSummary>>> GetCattleForCphAsync(string cph, CancellationToken cancellationToken = default);
+    Task<CachedLookupResponse<List<CattleSummary>>> GetCattleForCphAsync(string cph, CattleSearchQuery? query = null, CancellationToken cancellationToken = default);
 }

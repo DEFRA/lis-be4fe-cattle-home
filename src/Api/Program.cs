@@ -21,6 +21,9 @@ using Defra.Lis.Be4Fe.Api.Utils.Logging;
 using Defra.Lis.Be4Fe.Api.Utils.Mongo;
 using Defra.Lis.Be4Fe.CattleApi;
 using Defra.Livestock.Sdk.Api.Strategies;
+using Defra.Livestock.Sdk.Api.Strategies.Abstractions.Operations.Http.Rest.Client;
+using Defra.Livestock.Sdk.Api.Strategies.Operations.Http.Rest.Client;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using Serilog;
@@ -140,18 +143,17 @@ public class Program
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        // Cattle API options are validated when first used, so the service boots (and answers /health)
+        // before the base URL and API key are configured.
         services.AddOptions<CattleApiOptions>()
             .Bind(configuration.GetRequiredSection(CattleApiOptions.SectionName));
+        services.AddSingleton(provider => provider.GetRequiredService<IOptions<CattleApiOptions>>().Value);
 
-        var cattleApiBaseUrl = configuration.GetValue<string>($"{CattleApiOptions.SectionName}:BaseUrl");
-
-        if (Uri.TryCreate(cattleApiBaseUrl, UriKind.Absolute, out var cattleApiBaseUri))
-        {
-            services.AddHttpClient(CattleApiHttpClient.Name, client =>
-            {
-                client.BaseAddress = cattleApiBaseUri;
-            }).AddHeaderPropagation();
-        }
+        // Strategies SDK REST client, registered before the factory so it carries header propagation
+        // (x-cdp-request-id) to the cattle API.
+        services.AddHttpClient<IRestHttpClient, RestHttpClient>().AddHeaderPropagation();
+        services.AddRestStrategyFactory<CattleHoldingRestClient>();
+        services.AddScoped<ICattleHoldingClient, CattleHoldingRestClient>();
 
         services.AddSingleton<IExternalDataCacheRepository, MongoExternalDataCacheRepository>();
         services.AddSingleton<ICachedDataService, CachedDataService>();
@@ -166,7 +168,8 @@ public class Program
             return new JsonCattleApiClient(resolvedFixturePath);
         });
         services.AddSingleton<IUserLookupService, UserLookupService>();
-        services.AddSingleton<ICphLookupService, CphLookupService>();
+        services.AddScoped<ICphLookupService, CphLookupService>();
+        services.AddScoped<IHoldingLookupService, HoldingLookupService>();
         services.AddSingleton<ICattleLookupService, CattleLookupService>();
     }
 

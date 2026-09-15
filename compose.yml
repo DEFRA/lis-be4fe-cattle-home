@@ -22,7 +22,8 @@ services:
       ASPNETCORE_URLS: http://+:8085
       Mongo__DatabaseUri: mongodb://mongodb:27017/
       Mongo__DatabaseName: lis-be4fe-cattle-home
-      CattleApi__BaseUrl: http://host.docker.internal:3250
+      CattleApi__BaseUrl: http://host.docker.internal:5019
+      CattleApi__ApiKey: ""
     networks:
       - cdp-tenant
 

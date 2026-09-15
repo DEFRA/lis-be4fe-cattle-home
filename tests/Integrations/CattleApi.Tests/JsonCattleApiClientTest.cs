@@ -36,17 +36,6 @@ public sealed class JsonCattleApiClientTest
     }
 
     [Fact]
-    public async Task GetCattleForCphShouldReturnMatchingFixtureEntries()
-    {
-        var result = await client.GetCattleForCphAsync("10-081-1234", TestContext.Current.CancellationToken);
-
-        result.Count.ShouldBe(10);
-        result.First().CattleId.ShouldBe("UK123456100001");
-        result.First().DateOfBirth.ShouldBe(new DateOnly(2024, 1, 15));
-        result.First().Status.ShouldBe("saved");
-    }
-
-    [Fact]
     public async Task GetCattleDetailsShouldMatchCattleIdIgnoringCase()
     {
         var result = await client.GetCattleDetailsAsync("uk123456100019", TestContext.Current.CancellationToken);
@@ -79,14 +68,6 @@ public sealed class JsonCattleApiClientTest
     }
 
     [Fact]
-    public async Task GetCattleForUnknownCphShouldReturnAnEmptyCollection()
-    {
-        var result = await client.GetCattleForCphAsync("99/999/9999", TestContext.Current.CancellationToken);
-
-        result.ShouldBeEmpty();
-    }
-
-    [Fact]
     public async Task GetCattleDetailsShouldRejectAnUnknownId()
     {
         var exception = await Should.ThrowAsync<KeyNotFoundException>(
@@ -103,8 +84,6 @@ public sealed class JsonCattleApiClientTest
 
         await Should.ThrowAsync<OperationCanceledException>(
             () => client.GetCphsForUserAsync("user", cancellation.Token));
-        await Should.ThrowAsync<OperationCanceledException>(
-            () => client.GetCattleForCphAsync("10/081/1234", cancellation.Token));
         await Should.ThrowAsync<OperationCanceledException>(
             () => client.GetCattleDetailsAsync("UK123456100001", cancellation.Token));
     }

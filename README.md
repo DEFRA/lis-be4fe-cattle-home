@@ -34,13 +34,21 @@ The development profile wires:
 
 - `Mongo__DatabaseUri=mongodb://127.0.0.1:27017/`
 - `Mongo__DatabaseName=lis-be4fe-cattle-home`
-- `CattleApi__BaseUrl=http://localhost:3250`
+- `CattleApi__BaseUrl=http://localhost:5019` (the `lis-api-cattle` `dotnet run` port)
+- `CattleApi__ApiKey=` (sent as `x-api-key` when set; the cattle API does not enforce it locally)
 
-Update `CattleApi__BaseUrl` to match the local `api/cattle` host if it differs.
+Update `CattleApi__BaseUrl` to match the local cattle API host if it differs (the cattle API's
+compose stack publishes it on 8085).
 
-Until the downstream cattle API is available, user CPH and cattle responses are read from
-`src/Api/Fixtures/CattleApi/cattle.json`. The path can be overridden with
-`CattleApi__FixturePath`; relative paths are resolved from the published application directory.
+Holding details and the cattle-on-holding list are passed straight through to the cattle API via
+a `Defra.Livestock.Sdk.Api.Strategies` REST strategy (`src/Integrations/CattleApi/CattleHoldingRestClient.cs`),
+with no caching in this phase; the inbound `x-cdp-request-id` header is propagated. The cattle API
+in turn reads LIS-FAKE. `CattleApi__BaseUrl` is only validated when a lookup is made, so the
+service starts (and answers `/health`) without it.
+
+User CPH and cattle detail responses are still read from `src/Api/Fixtures/CattleApi/cattle.json`
+until the cattle API provides them. The path can be overridden with `CattleApi__FixturePath`;
+relative paths are resolved from the published application directory.
 
 ## Local container stack
 
@@ -57,7 +65,8 @@ docker compose up --build
 - `GET /openapi/v1.json` returns the OpenAPI v1 specification
 - `GET /swagger/index.html` opens the interactive Swagger UI
 - `GET /api/users/{userId}/cphs` returns CPHs for a user, using Mongo cache first
-- `GET /api/cphs/{cph}/cattle` returns cattle for a CPH, using Mongo cache first
+- `GET /api/cphs/{county}/{parish}/{holding}` returns holding details from the cattle API
+- `GET /api/cphs/{county}/{parish}/{holding}/cattle?eartag=&breed=&sex=` returns live cattle on a CPH from the cattle API, optionally filtered
 - `GET /api/cattle/{cattleId}` returns cattle details, using Mongo cache first
 
 ## Testing

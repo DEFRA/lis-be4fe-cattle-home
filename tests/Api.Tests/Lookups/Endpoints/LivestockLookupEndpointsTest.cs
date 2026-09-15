@@ -66,8 +66,61 @@ public class LivestockLookupEndpointsTest
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         payload.ShouldNotBeNull();
-        payload.Source.ShouldBe("cattle");
+        payload.Source.ShouldBe("cattle-api");
+        payload.CachedUntilUtc.ShouldBeNull();
         payload.Data.Count.ShouldBe(2);
+        payload.Data[0].BreedCode.ShouldBe("AA");
+        payload.Data[0].DateOnCph.ShouldBe(new DateOnly(2024, 2, 1));
+        factory.HoldingClient.LastCph.ShouldBe("12/345/6789");
+        factory.HoldingClient.LastQuery.ShouldNotBeNull().IsEmpty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task GetCattleForCphShouldPassSearchFiltersToTheCattleApi()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/cphs/12/345/6789/cattle?eartag=UK123&breed=Angus&sex=Female", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var query = factory.HoldingClient.LastQuery.ShouldNotBeNull();
+        query.Eartag.ShouldBe("UK123");
+        query.Breed.ShouldBe("Angus");
+        query.Sex.ShouldBe("Female");
+    }
+
+    [Fact]
+    public async Task GetHoldingDetailsShouldReturnDetailsFromTheCattleApi()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/cphs/12/345/6789", TestContext.Current.CancellationToken);
+        var payload = await response.Content.ReadFromJsonAsync<CachedLookupResponse<HoldingDetails>>(
+            SerializerOptions,
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        payload.ShouldNotBeNull();
+        payload.Source.ShouldBe("cattle-api");
+        payload.Data.Cph.ShouldBe("12/345/6789");
+        payload.Data.Name.ShouldBe("Test Farm");
+        payload.Data.RegisteredKeeper.ShouldBe("Test Keeper");
+        payload.Data.HerdMarks.ShouldBe(["UK 123456"]);
+    }
+
+    [Fact]
+    public async Task GetHoldingDetailsShouldReturnProblemDetailsWhenTheHoldingIsUnknown()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/cphs/99/999/9999", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.ShouldContain("99/999/9999");
     }
 
     [Fact]
@@ -91,16 +144,60 @@ public class LivestockLookupEndpointsTest
     {
         public TestCattleApiClient CattleApiClient { get; } = new();
 
+        public TestCattleHoldingClient HoldingClient { get; } = new();
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureTestServices(services =>
             {
                 services.RemoveAll<IExternalDataCacheRepository>();
                 services.RemoveAll<ICattleApiClient>();
+                services.RemoveAll<ICattleHoldingClient>();
 
                 services.AddSingleton<IExternalDataCacheRepository, InMemoryExternalDataCacheRepository>();
                 services.AddSingleton<ICattleApiClient>(CattleApiClient);
+                services.AddSingleton<ICattleHoldingClient>(HoldingClient);
             });
+        }
+    }
+
+    private sealed class TestCattleHoldingClient : ICattleHoldingClient
+    {
+        public string? LastCph { get; private set; }
+
+        public CattleSearchQuery? LastQuery { get; private set; }
+
+        public Task<HoldingDetails> GetHoldingDetailsAsync(string cph, CancellationToken cancellationToken = default)
+        {
+            LastCph = cph;
+
+            if (cph.StartsWith("99/", StringComparison.Ordinal))
+            {
+                throw new HoldingNotFoundException(cph);
+            }
+
+            return Task.FromResult(new HoldingDetails
+            {
+                Cph = cph,
+                Name = "Test Farm",
+                HoldingType = "AH",
+                Address = ["1 Farm Lane", "Shrewsbury", "SY1 1AA"],
+                RegisteredKeeper = "Test Keeper",
+                HerdMarks = ["UK 123456"],
+                AllowedSpecies = ["Cattle"],
+            });
+        }
+
+        public Task<IReadOnlyCollection<CattleSummary>> SearchCattleAsync(string cph, CattleSearchQuery query, CancellationToken cancellationToken = default)
+        {
+            LastCph = cph;
+            LastQuery = query;
+
+            return Task.FromResult<IReadOnlyCollection<CattleSummary>>(
+            [
+                new CattleSummary { CattleId = "UK123", Eartag = "UK123", Breed = "Aberdeen Angus", BreedCode = "AA", BreedName = "Aberdeen Angus", DateOfBirth = new DateOnly(2024, 1, 15), DateOnCph = new DateOnly(2024, 2, 1), Sex = "Female", Status = "Alive" },
+                new CattleSummary { CattleId = "UK124", Eartag = "UK124", Breed = "Hereford", BreedCode = "HE", BreedName = "Hereford", DateOfBirth = new DateOnly(2024, 2, 3), Sex = "Male", Status = "Alive" },
+            ]);
         }
     }
 
@@ -169,15 +266,6 @@ public class LivestockLookupEndpointsTest
                     Name = $"{userId} Secondary",
                     BusinessName = "Alice Secondary Livestock Ltd",
                 },
-            ]);
-        }
-
-        public Task<IReadOnlyCollection<CattleSummary>> GetCattleForCphAsync(string cph, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<IReadOnlyCollection<CattleSummary>>(
-            [
-                new CattleSummary { CattleId = $"{cph}-001", Eartag = "UK123", Breed = "Angus", DateOfBirth = new DateOnly(2024, 1, 15), Sex = "Female", Status = "saved" },
-                new CattleSummary { CattleId = $"{cph}-002", Eartag = "UK124", Breed = "Hereford", DateOfBirth = new DateOnly(2024, 2, 3), Sex = "Male", Status = "draft" },
             ]);
         }
 
