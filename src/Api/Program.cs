@@ -20,6 +20,7 @@ using Defra.Lis.Be4Fe.Api.Utils.Http;
 using Defra.Lis.Be4Fe.Api.Utils.Logging;
 using Defra.Lis.Be4Fe.Api.Utils.Mongo;
 using Defra.Lis.Be4Fe.CattleApi;
+using Defra.Livestock.Sdk.Api.Strategies;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using Serilog;
@@ -68,6 +69,7 @@ public class Program
         builder.Host.UseSerilog(CdpLogging.Configuration);
         builder.Services.AddProblemDetails();
         builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+        builder.Services.AddStrategyFramework();
         builder.Services.ConfigureHttpJsonOptions(options =>
         {
             options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
