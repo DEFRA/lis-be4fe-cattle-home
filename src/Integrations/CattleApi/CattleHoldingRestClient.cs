@@ -65,11 +65,10 @@ public sealed partial class CattleHoldingRestClient(
         try
         {
             var strategy = BuildStrategy("Search cattle on holding", cancellationToken)
-                .WithResourceUrl($"holdings/{segments.ToRoute()}/cattle");
-
-            AddQueryParameter(strategy, "earTag", query.Eartag);
-            AddQueryParameter(strategy, "breed", query.Breed);
-            AddQueryParameter(strategy, "sex", query.Sex);
+                .WithResourceUrl($"holdings/{segments.ToRoute()}/cattle")
+                .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Eartag), "earTag", query.Eartag?.Trim() ?? string.Empty)
+                .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Breed), "breed", query.Breed?.Trim() ?? string.Empty)
+                .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Sex), "sex", query.Sex?.Trim() ?? string.Empty);
 
             var cattle = await strategy.ExecuteAndTransform<List<CattleApiCattle>, IReadOnlyCollection<CattleSummary>>(
                 list => list.Select(ToCattleSummary).ToList());
@@ -130,14 +129,6 @@ public sealed partial class CattleHoldingRestClient(
 
     private static bool IsBadRequest(RestResponseException exception) =>
         exception.InnerException is HttpRequestException { StatusCode: HttpStatusCode.BadRequest };
-
-    private static void AddQueryParameter(IRestStrategy<CattleHoldingRestClient> strategy, string name, string? value)
-    {
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            strategy.WithQueryParameter(name, value.Trim());
-        }
-    }
 
     private IRestStrategy<CattleHoldingRestClient> BuildStrategy(string action, CancellationToken cancellationToken)
     {
