@@ -170,7 +170,9 @@ public class Program
         services.AddSingleton<IUserLookupService, UserLookupService>();
         services.AddScoped<ICphLookupService, CphLookupService>();
         services.AddScoped<IHoldingLookupService, HoldingLookupService>();
-        services.AddSingleton<ICattleLookupService, CattleLookupService>();
+
+        // Scoped, not singleton: it now depends on the scoped cattle API REST client.
+        services.AddScoped<ICattleLookupService, CattleLookupService>();
     }
 
     [ExcludeFromCodeCoverage]

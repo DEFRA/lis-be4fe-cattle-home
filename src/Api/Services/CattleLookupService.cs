@@ -10,7 +10,7 @@ using Defra.Lis.Be4Fe.Models.Lookups.Models;
 /// <inheritdoc />
 public sealed partial class CattleLookupService(
     ICachedDataService cachedDataService,
-    ICattleApiClient cattleApiClient,
+    ICattleHoldingClient cattleHoldingClient,
     ILogger<CattleLookupService> logger)
     : ICattleLookupService
 {
@@ -30,7 +30,7 @@ public sealed partial class CattleLookupService(
         }
 
         LogCacheMissForCattleDetailsRetrievingFromApiCattleidCattleid(normalisedCattleId);
-        var details = await cattleApiClient.GetCattleDetailsAsync(normalisedCattleId, cancellationToken);
+        var details = await cattleHoldingClient.GetCattleDetailsAsync(normalisedCattleId, cancellationToken);
         LogRetrievedCattleDetailsCattleidCattleid(normalisedCattleId);
 
         return await cachedDataService
@@ -38,7 +38,7 @@ public sealed partial class CattleLookupService(
                 "cattle-details",
                 normalisedCattleId,
                 details,
-                "cattle",
+                LookupSources.CattleApi,
                 cancellationToken);
     }
 

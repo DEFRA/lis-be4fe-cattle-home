@@ -40,15 +40,19 @@ The development profile wires:
 Update `CattleApi__BaseUrl` to match the local cattle API host if it differs (the cattle API's
 compose stack publishes it on 8085).
 
-Holding details and the cattle-on-holding list are passed straight through to the cattle API via
-a `Defra.Livestock.Sdk.Api.Strategies` REST strategy (`src/Integrations/CattleApi/CattleHoldingRestClient.cs`),
-with no caching in this phase; the inbound `x-cdp-request-id` header is propagated. The cattle API
-in turn reads LIS-FAKE. `CattleApi__BaseUrl` is only validated when a lookup is made, so the
-service starts (and answers `/health`) without it.
+Holding details, the cattle-on-holding list and single-animal cattle details are passed through
+to the cattle API via a `Defra.Livestock.Sdk.Api.Strategies` REST strategy
+(`src/Integrations/CattleApi/CattleHoldingRestClient.cs`); the inbound `x-cdp-request-id` header is
+propagated. The cattle API in turn reads LIS-FAKE. Holding and cattle-list responses are not cached
+in this phase; cattle details are cached in Mongo. `CattleApi__BaseUrl` is only validated when a
+lookup is made, so the service starts (and answers `/health`) without it.
 
-User CPH and cattle detail responses are still read from `src/Api/Fixtures/CattleApi/cattle.json`
-until the cattle API provides them. The path can be overridden with `CattleApi__FixturePath`;
-relative paths are resolved from the published application directory.
+Cattle details come from CADS through the cattle API, which does not return the holding, so `cph`
+is null and `sire_name` is unsupplied until the upstream contract carries them.
+
+User CPH responses are still read from `src/Api/Fixtures/CattleApi/cattle.json` until the cattle
+API provides them. The path can be overridden with `CattleApi__FixturePath`; relative paths are
+resolved from the published application directory.
 
 ## Local container stack
 
@@ -67,7 +71,7 @@ docker compose up --build
 - `GET /api/users/{userId}/cphs` returns CPHs for a user, using Mongo cache first
 - `GET /api/cphs/{county}/{parish}/{holding}` returns holding details from the cattle API
 - `GET /api/cphs/{county}/{parish}/{holding}/cattle?eartag=&breed=&sex=` returns live cattle on a CPH from the cattle API, optionally filtered
-- `GET /api/cattle/{cattleId}` returns cattle details, using Mongo cache first
+- `GET /api/cattle/{cattleId}` returns cattle details from the cattle API, using Mongo cache first; 404 when the animal is unknown
 
 ## Testing
 

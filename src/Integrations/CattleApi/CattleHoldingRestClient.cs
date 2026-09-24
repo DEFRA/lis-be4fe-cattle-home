@@ -14,9 +14,9 @@ using Defra.Livestock.Sdk.Api.Strategies.Abstractions.Operations.Http.Rest;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Passes holding details and cattle-on-holding queries through to the cattle API using the
-/// strategies SDK REST strategy. The API key travels as <c>x-api-key</c>; the correlation header is
-/// added by header propagation on the SDK's HTTP client.
+/// Passes holding details, cattle-on-holding queries and single-animal details through to the
+/// cattle API using the strategies SDK REST strategy. The API key travels as <c>x-api-key</c>; the
+/// correlation header is added by header propagation on the SDK's HTTP client.
 /// </summary>
 public sealed partial class CattleHoldingRestClient(
     IRestStrategyFactory<CattleHoldingRestClient> strategyFactory,
@@ -86,6 +86,59 @@ public sealed partial class CattleHoldingRestClient(
         {
             throw new ArgumentException($"The cattle API rejected CPH '{segments}'.", nameof(cph), ex);
         }
+    }
+
+    public async Task<CattleDetails> GetCattleDetailsAsync(string earTag, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(earTag);
+
+        var trimmedEarTag = earTag.Trim();
+
+        try
+        {
+            var details = await BuildStrategy("Get cattle details", cancellationToken)
+                .WithResourceUrl($"cattle/{Uri.EscapeDataString(trimmedEarTag)}")
+                .ExecuteAndTransform<CattleApiCattleDetails, CattleDetails>(ToCattleDetails);
+
+            LogRetrievedCattleDetails(trimmedEarTag);
+
+            return details;
+        }
+        catch (RestResponseException ex) when (IsNotFound(ex))
+        {
+            LogCattleNotFound(trimmedEarTag);
+            throw new CattleNotFoundException(trimmedEarTag);
+        }
+    }
+
+    internal static CattleDetails ToCattleDetails(CattleApiCattleDetails cattle)
+    {
+        ArgumentNullException.ThrowIfNull(cattle);
+
+        var earTag = cattle.EarTag ?? string.Empty;
+
+        return new CattleDetails
+        {
+            CattleId = earTag,
+            Eartag = earTag,
+
+            // The cattle API reads details from CADS, which does not return the holding.
+            Cph = null,
+            Breed = cattle.BreedCode,
+            BreedName = cattle.BreedName ?? cattle.Breed,
+            Species = cattle.Species,
+            Sex = cattle.Sex,
+            DateOfBirth = cattle.DateBirth,
+            DateRegistered = cattle.DateRegistered,
+            DateOnCph = cattle.DateOnCph,
+            State = cattle.State,
+            RestrictionStatus = cattle.RestrictionStatus,
+            DamType = cattle.DamType,
+            GeneticDamTag = cattle.GeneticDamEarTag,
+            SurrogateTag = cattle.SurrogateDamEarTag,
+            SireTag = cattle.SireEarTag,
+            SireName = cattle.SireName,
+        };
     }
 
     internal static HoldingDetails ToHoldingDetails(CphSegments requested, CattleApiHolding holding)
