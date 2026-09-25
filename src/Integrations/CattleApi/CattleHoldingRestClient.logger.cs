@@ -16,4 +16,10 @@ public partial class CattleHoldingRestClient
 
     [LoggerMessage(LogLevel.Warning, "The cattle API does not know the holding. Cph: {Cph}")]
     partial void LogHoldingNotFound(string cph);
+
+    [LoggerMessage(LogLevel.Information, "Retrieved cattle details from the cattle API. EarTag: {EarTag}")]
+    partial void LogRetrievedCattleDetails(string earTag);
+
+    [LoggerMessage(LogLevel.Warning, "The cattle API does not know the animal. EarTag: {EarTag}")]
+    partial void LogCattleNotFound(string earTag);
 }

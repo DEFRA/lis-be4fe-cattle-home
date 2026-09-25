@@ -14,6 +14,6 @@ public static class OpenApiMetadata
     {
         public const string Name = "GetCattleDetails";
         public const string Summary = "Gets cattle details for a single animal.";
-        public const string Description = "Returns cattle details from the Mongo cache when available, otherwise from the scaffolded cattle provider.";
+        public const string Description = "Returns cattle details from the Mongo cache when available, otherwise from the cattle API. 404 when the animal is unknown.";
     }
 }

@@ -124,20 +124,58 @@ public class LivestockLookupEndpointsTest
     }
 
     [Fact]
-    public async Task GetCattleDetailsShouldReturnDetailsFromProvider()
+    public async Task GetCattleDetailsShouldReturnDetailsFromTheCattleApi()
     {
         await using var factory = new LookupTestFactory();
         var client = factory.CreateClient();
 
-        var response = await client.GetAsync("/api/cattle/animal-123", TestContext.Current.CancellationToken);
+        var response = await client.GetAsync("/api/cattle/uk200000000001", TestContext.Current.CancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<CachedLookupResponse<CattleDetails>>(
             SerializerOptions,
             TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         payload.ShouldNotBeNull();
-        payload.Source.ShouldBe("cattle");
-        payload.Data.CattleId.ShouldBe("ANIMAL-123");
+        payload.Source.ShouldBe("cattle-api");
+        payload.Data.CattleId.ShouldBe("UK200000000001");
+        payload.Data.Breed.ShouldBe("AA");
+        payload.Data.State.ShouldBe("Alive");
+        payload.Data.RestrictionStatus.ShouldBe("None");
+        payload.Data.DateRegistered.ShouldBe(new DateOnly(2021, 2, 7));
+        payload.Data.DamType.ShouldBe("genetic");
+        payload.Data.GeneticDamTag.ShouldBe("UK200000000098");
+        payload.Data.Cph.ShouldBeNull();
+        factory.HoldingClient.LastEarTag.ShouldBe("UK200000000001");
+    }
+
+    [Fact]
+    public async Task GetCattleDetailsShouldServeTheSecondCallFromTheCache()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateClient();
+
+        await client.GetAsync("/api/cattle/UK200000000001", TestContext.Current.CancellationToken);
+        var second = await client.GetFromJsonAsync<CachedLookupResponse<CattleDetails>>(
+            "/api/cattle/UK200000000001",
+            SerializerOptions,
+            TestContext.Current.CancellationToken);
+
+        second.ShouldNotBeNull();
+        second.Source.ShouldBe("cache");
+        factory.HoldingClient.CattleDetailCallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task GetCattleDetailsShouldReturnProblemDetails404WhenTheAnimalIsUnknown()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/cattle/UNKNOWN-TAG", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.ShouldContain("UNKNOWN-TAG");
     }
 
     private sealed class LookupTestFactory : WebApplicationFactory<Program>
@@ -164,6 +202,10 @@ public class LivestockLookupEndpointsTest
     private sealed class TestCattleHoldingClient : ICattleHoldingClient
     {
         public string? LastCph { get; private set; }
+
+        public string? LastEarTag { get; private set; }
+
+        public int CattleDetailCallCount { get; private set; }
 
         public CattleSearchQuery? LastQuery { get; private set; }
 
@@ -198,6 +240,36 @@ public class LivestockLookupEndpointsTest
                 new CattleSummary { CattleId = "UK123", Eartag = "UK123", Breed = "Aberdeen Angus", BreedCode = "AA", BreedName = "Aberdeen Angus", DateOfBirth = new DateOnly(2024, 1, 15), DateOnCph = new DateOnly(2024, 2, 1), Sex = "Female", Status = "Alive" },
                 new CattleSummary { CattleId = "UK124", Eartag = "UK124", Breed = "Hereford", BreedCode = "HE", BreedName = "Hereford", DateOfBirth = new DateOnly(2024, 2, 3), Sex = "Male", Status = "Alive" },
             ]);
+        }
+
+        public Task<CattleDetails> GetCattleDetailsAsync(string earTag, CancellationToken cancellationToken = default)
+        {
+            LastEarTag = earTag;
+            CattleDetailCallCount++;
+
+            if (earTag.StartsWith("UNKNOWN", StringComparison.Ordinal))
+            {
+                throw new CattleNotFoundException(earTag);
+            }
+
+            return Task.FromResult(new CattleDetails
+            {
+                CattleId = earTag,
+                Eartag = earTag,
+                Cph = null,
+                Breed = "AA",
+                BreedName = "Aberdeen Angus",
+                Species = "Cattle",
+                Sex = "Female",
+                DateOfBirth = new DateOnly(2021, 2, 3),
+                DateRegistered = new DateOnly(2021, 2, 7),
+                DateOnCph = new DateOnly(2021, 2, 3),
+                State = "Alive",
+                RestrictionStatus = "None",
+                DamType = "genetic",
+                GeneticDamTag = "UK200000000098",
+                SireTag = "UK200000000099",
+            });
         }
     }
 
@@ -267,20 +339,6 @@ public class LivestockLookupEndpointsTest
                     BusinessName = "Alice Secondary Livestock Ltd",
                 },
             ]);
-        }
-
-        public Task<CattleDetails> GetCattleDetailsAsync(string cattleId, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(new CattleDetails
-            {
-                CattleId = cattleId,
-                Eartag = "UK999",
-                Cph = "12/345/6789",
-                Breed = "Angus",
-                Sex = "Female",
-                DateOfBirth = new DateOnly(2021, 2, 3),
-                Status = "Active",
-            });
         }
     }
 }
