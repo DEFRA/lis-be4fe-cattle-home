@@ -21,6 +21,14 @@ public static class UsersEndpoints
             .WithDescription(OpenApiMetadata.GetCphsForUser.Description)
             .Produces<CachedLookupResponse<List<UserCph>>>(StatusCodes.Status200OK);
 
+        group.MapGet(RouteNames.Users + "/{userId}", GetUserDetails)
+            .WithName(OpenApiMetadata.GetUserDetails.Name)
+            .WithSummary(OpenApiMetadata.GetUserDetails.Summary)
+            .WithDescription(OpenApiMetadata.GetUserDetails.Description)
+            .Produces<CachedLookupResponse<UserDetails>>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         return app;
     }
 
@@ -30,6 +38,15 @@ public static class UsersEndpoints
         CancellationToken cancellationToken)
     {
         var response = await userLookupService.GetCphsForUserAsync(userId, cancellationToken);
+        return TypedResults.Ok(response);
+    }
+
+    private static async Task<IResult> GetUserDetails(
+        string userId,
+        IUserLookupService userLookupService,
+        CancellationToken cancellationToken)
+    {
+        var response = await userLookupService.GetUserDetailsAsync(userId, cancellationToken);
         return TypedResults.Ok(response);
     }
 }

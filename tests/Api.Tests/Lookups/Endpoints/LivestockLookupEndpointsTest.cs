@@ -178,6 +178,79 @@ public class LivestockLookupEndpointsTest
         body.ShouldContain("UNKNOWN-TAG");
     }
 
+    [Fact]
+    public async Task GetUserDetailsShouldReturnDetailsFromTheCattleApiWithoutCaching()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateClient();
+
+        await client.GetAsync("/api/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken);
+        var response = await client.GetAsync("/api/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken);
+        var payload = await response.Content.ReadFromJsonAsync<CachedLookupResponse<UserDetails>>(
+            SerializerOptions,
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        payload.ShouldNotBeNull();
+        payload.Source.ShouldBe("cattle-api");
+        payload.CachedUntilUtc.ShouldBeNull();
+        payload.Data.Subject.ShouldBe("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
+        payload.Data.DisplayName.ShouldBe("Test Keeper");
+        var cph = payload.Data.Cphs.ShouldHaveSingleItem();
+        cph.Cph.ShouldBe("22/001/0001");
+        cph.HoldingId.ShouldBe("holding-0001");
+        cph.HoldingName.ShouldBe("Oakfield Farm");
+        cph.Role.ShouldBe("Keeper");
+        factory.HoldingClient.UserDetailCallCount.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task GetUserDetailsShouldPassTheUserIdThroughWithoutChangingItsCase()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateClient();
+
+        await client.GetAsync("/api/users/AbC-def", TestContext.Current.CancellationToken);
+
+        factory.HoldingClient.LastUserId.ShouldBe("AbC-def");
+    }
+
+    [Fact]
+    public async Task GetUserDetailsShouldWriteTheResponseInSnakeCase()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateClient();
+
+        var body = await client.GetStringAsync("/api/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken);
+
+        body.ShouldContain("\"display_name\":\"Test Keeper\"");
+        body.ShouldContain("\"holding_name\":\"Oakfield Farm\"");
+    }
+
+    [Fact]
+    public async Task GetUserDetailsShouldReturnProblemDetails404WhenTheUserIsUnknown()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/users/unknown-user", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.ShouldContain("unknown-user");
+    }
+
+    [Fact]
+    public async Task GetUserDetailsShouldReturnProblemDetails400WhenTheCattleApiRejectsTheUserId()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/users/rejected-user", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
     private sealed class LookupTestFactory : WebApplicationFactory<Program>
     {
         public TestCattleApiClient CattleApiClient { get; } = new();
@@ -208,6 +281,36 @@ public class LivestockLookupEndpointsTest
         public int CattleDetailCallCount { get; private set; }
 
         public CattleSearchQuery? LastQuery { get; private set; }
+
+        public string? LastUserId { get; private set; }
+
+        public int UserDetailCallCount { get; private set; }
+
+        public Task<UserDetails> GetUserDetailsAsync(string userId, CancellationToken cancellationToken = default)
+        {
+            LastUserId = userId;
+            UserDetailCallCount++;
+
+            if (userId.StartsWith("unknown", StringComparison.Ordinal))
+            {
+                throw new UserNotFoundException(userId);
+            }
+
+            if (userId.StartsWith("rejected", StringComparison.Ordinal))
+            {
+                throw new ArgumentException($"The cattle API rejected user '{userId}'.", nameof(userId));
+            }
+
+            return Task.FromResult(new UserDetails
+            {
+                Subject = userId,
+                Email = "test.keeper@example.com",
+                FirstName = "Test",
+                LastName = "Keeper",
+                DisplayName = "Test Keeper",
+                Cphs = [new UserHolding { Cph = "22/001/0001", HoldingId = "holding-0001", HoldingName = "Oakfield Farm", Role = "Keeper" }],
+            });
+        }
 
         public Task<HoldingDetails> GetHoldingDetailsAsync(string cph, CancellationToken cancellationToken = default)
         {

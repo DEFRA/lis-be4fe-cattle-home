@@ -167,7 +167,9 @@ public class Program
 
             return new JsonCattleApiClient(resolvedFixturePath);
         });
-        services.AddSingleton<IUserLookupService, UserLookupService>();
+
+        // Scoped, not singleton: it now depends on the scoped cattle API REST client.
+        services.AddScoped<IUserLookupService, UserLookupService>();
         services.AddScoped<ICphLookupService, CphLookupService>();
         services.AddScoped<IHoldingLookupService, HoldingLookupService>();
 

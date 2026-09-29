@@ -36,6 +36,14 @@ public sealed class CattleHoldingRestClientTest
          "sireEarTag":"UK200000000099","sireName":null}
         """;
 
+    private const string TestUser = """
+        {"subject":"0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51","email":"test.keeper@example.com",
+         "firstName":"Test","lastName":"Keeper","displayName":"Test Keeper",
+         "cphs":[{"cph":"22/001/0001","holdingId":"holding-0001","holdingName":"Oakfield Farm","role":"Keeper"},
+                 {"cph":"22/003/0003","holdingId":null,"holdingName":null,"role":"Keeper"},
+                 {"cph":null,"holdingId":null,"holdingName":null,"role":"Keeper"}]}
+        """;
+
     private readonly StubHttpMessageHandler handler = new();
 
     [Fact]
@@ -291,6 +299,96 @@ public sealed class CattleHoldingRestClientTest
         var client = CreateClient();
 
         await Should.ThrowAsync<ArgumentException>(() => client.GetCattleDetailsAsync(earTag, TestContext.Current.CancellationToken));
+        handler.Requests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task GetUserDetailsShouldCallTheCattleApiWithTheApiKey()
+    {
+        handler.RespondWith(HttpStatusCode.OK, TestUser);
+        var client = CreateClient(apiKey: "test-key");
+
+        await client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken);
+
+        var request = handler.Requests.ShouldHaveSingleItem();
+        request.Method.ShouldBe(HttpMethod.Get);
+        request.RequestUri!.AbsoluteUri.ShouldBe("http://cattle-api.test/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
+        request.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldBe(["test-key"]);
+    }
+
+    [Fact]
+    public async Task GetUserDetailsShouldEscapeAndTrimTheUserIdWithoutChangingItsCase()
+    {
+        handler.RespondWith(HttpStatusCode.OK, TestUser);
+        var client = CreateClient();
+
+        await client.GetUserDetailsAsync("  Idp|User/1  ", TestContext.Current.CancellationToken);
+
+        handler.Requests.ShouldHaveSingleItem().RequestUri!.AbsoluteUri
+            .ShouldBe("http://cattle-api.test/users/Idp%7CUser%2F1");
+    }
+
+    [Fact]
+    public async Task GetUserDetailsShouldMapTheCattleApiResponse()
+    {
+        handler.RespondWith(HttpStatusCode.OK, TestUser);
+        var client = CreateClient();
+
+        var user = await client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken);
+
+        user.Subject.ShouldBe("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
+        user.Email.ShouldBe("test.keeper@example.com");
+        user.FirstName.ShouldBe("Test");
+        user.LastName.ShouldBe("Keeper");
+        user.DisplayName.ShouldBe("Test Keeper");
+        user.Cphs.Select(cph => cph.Cph).ShouldBe(["22/001/0001", "22/003/0003"]);
+        var first = user.Cphs.First();
+        first.HoldingId.ShouldBe("holding-0001");
+        first.HoldingName.ShouldBe("Oakfield Farm");
+        first.Role.ShouldBe("Keeper");
+        user.Cphs.Last().HoldingName.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetUserDetailsShouldThrowUserNotFoundOn404()
+    {
+        handler.RespondWith(HttpStatusCode.NotFound, """{"title":"Not Found","status":404}""");
+        var client = CreateClient();
+
+        var exception = await Should.ThrowAsync<UserNotFoundException>(
+            () => client.GetUserDetailsAsync("00000000-0000-4000-8000-000000000000", TestContext.Current.CancellationToken));
+
+        exception.UserId.ShouldBe("00000000-0000-4000-8000-000000000000");
+    }
+
+    [Fact]
+    public async Task GetUserDetailsShouldThrowArgumentExceptionOn400()
+    {
+        handler.RespondWith(HttpStatusCode.BadRequest, """{"title":"Bad Request","status":400}""");
+        var client = CreateClient();
+
+        await Should.ThrowAsync<ArgumentException>(
+            () => client.GetUserDetailsAsync("not-a-uuid", TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task GetUserDetailsShouldPropagateOtherFailures()
+    {
+        handler.RespondWith(HttpStatusCode.InternalServerError, """{"title":"Internal Server Error","status":500}""");
+        var client = CreateClient();
+
+        await Should.ThrowAsync<RestResponseException>(
+            () => client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task GetUserDetailsShouldRejectABlankUserIdWithoutCallingTheApi(string userId)
+    {
+        var client = CreateClient();
+
+        await Should.ThrowAsync<ArgumentException>(() => client.GetUserDetailsAsync(userId, TestContext.Current.CancellationToken));
         handler.Requests.ShouldBeEmpty();
     }
 

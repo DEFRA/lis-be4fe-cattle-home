@@ -14,7 +14,7 @@ using Defra.Livestock.Sdk.Api.Strategies.Abstractions.Operations.Http.Rest;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Passes holding details, cattle-on-holding queries and single-animal details through to the
+/// Passes holding details, cattle-on-holding queries, single-animal details and user details through to the
 /// cattle API using the strategies SDK REST strategy. The API key travels as <c>x-api-key</c>; the
 /// correlation header is added by header propagation on the SDK's HTTP client.
 /// </summary>
@@ -109,6 +109,58 @@ public sealed partial class CattleHoldingRestClient(
             LogCattleNotFound(trimmedEarTag);
             throw new CattleNotFoundException(trimmedEarTag);
         }
+    }
+
+    public async Task<UserDetails> GetUserDetailsAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+
+        // The user id is the identity provider subject: opaque and case-sensitive, so it is trimmed but never re-cased.
+        var trimmedUserId = userId.Trim();
+
+        try
+        {
+            var details = await BuildStrategy("Get user details", cancellationToken)
+                .WithResourceUrl($"users/{Uri.EscapeDataString(trimmedUserId)}")
+                .ExecuteAndTransform<CattleApiUserDetails, UserDetails>(user => ToUserDetails(trimmedUserId, user));
+
+            LogRetrievedUserDetails(details.Cphs.Count, trimmedUserId);
+
+            return details;
+        }
+        catch (RestResponseException ex) when (IsNotFound(ex))
+        {
+            LogUserNotFound(trimmedUserId);
+            throw new UserNotFoundException(trimmedUserId);
+        }
+        catch (RestResponseException ex) when (IsBadRequest(ex))
+        {
+            throw new ArgumentException($"The cattle API rejected user '{trimmedUserId}'.", nameof(userId), ex);
+        }
+    }
+
+    internal static UserDetails ToUserDetails(string requestedUserId, CattleApiUserDetails user)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+
+        return new UserDetails
+        {
+            Subject = string.IsNullOrWhiteSpace(user.Subject) ? requestedUserId : user.Subject,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            DisplayName = user.DisplayName,
+            Cphs = (user.Cphs ?? [])
+                .Where(cph => !string.IsNullOrWhiteSpace(cph.Cph))
+                .Select(cph => new UserHolding
+                {
+                    Cph = cph.Cph!,
+                    HoldingId = cph.HoldingId,
+                    HoldingName = cph.HoldingName,
+                    Role = cph.Role,
+                })
+                .ToList(),
+        };
     }
 
     internal static CattleDetails ToCattleDetails(CattleApiCattleDetails cattle)

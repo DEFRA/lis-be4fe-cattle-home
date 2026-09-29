@@ -22,4 +22,10 @@ public partial class CattleHoldingRestClient
 
     [LoggerMessage(LogLevel.Warning, "The cattle API does not know the animal. EarTag: {EarTag}")]
     partial void LogCattleNotFound(string earTag);
+
+    [LoggerMessage(LogLevel.Information, "Retrieved user details with {Count} CPHs from the cattle API. UserId: {UserId}")]
+    partial void LogRetrievedUserDetails(int count, string userId);
+
+    [LoggerMessage(LogLevel.Warning, "The cattle API does not know the user. UserId: {UserId}")]
+    partial void LogUserNotFound(string userId);
 }
