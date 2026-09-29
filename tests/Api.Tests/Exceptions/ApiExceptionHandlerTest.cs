@@ -6,6 +6,7 @@ namespace Defra.Lis.Be4Fe.Api.Tests.Exceptions;
 
 using System.Text.Json;
 using Defra.Lis.Be4Fe.Api.Exceptions;
+using Defra.Lis.Be4Fe.CattleApi;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -14,6 +15,9 @@ public sealed class ApiExceptionHandlerTest
     public static TheoryData<Exception, int, string> ExceptionCases => new()
     {
         { new NotFoundException("missing"), StatusCodes.Status404NotFound, "Not Found" },
+        { new HoldingNotFoundException("22/050/0050"), StatusCodes.Status404NotFound, "Not Found" },
+        { new CattleNotFoundException("UK999999999999"), StatusCodes.Status404NotFound, "Not Found" },
+        { new UserNotFoundException("unknown-user"), StatusCodes.Status404NotFound, "Not Found" },
         { new ConflictException("duplicate"), StatusCodes.Status409Conflict, "Conflict" },
         { new BusinessRuleException("invalid"), StatusCodes.Status400BadRequest, "Bad Request" },
         { new ArgumentException("bad argument"), StatusCodes.Status400BadRequest, "Bad Request" },

@@ -19,9 +19,8 @@ public sealed partial class ApiExceptionHandler(ILogger<ApiExceptionHandler> log
     {
         var (statusCode, title, type) = exception switch
         {
-            NotFoundException => (StatusCodes.Status404NotFound, "Not Found", "https://httpstatuses.com/404"),
-            HoldingNotFoundException => (StatusCodes.Status404NotFound, "Not Found", "https://httpstatuses.com/404"),
-            CattleNotFoundException => (StatusCodes.Status404NotFound, "Not Found", "https://httpstatuses.com/404"),
+            NotFoundException or HoldingNotFoundException or CattleNotFoundException or UserNotFoundException
+                => (StatusCodes.Status404NotFound, "Not Found", "https://httpstatuses.com/404"),
             ConflictException => (StatusCodes.Status409Conflict, "Conflict", "https://httpstatuses.com/409"),
             BusinessRuleException => (StatusCodes.Status400BadRequest, "Bad Request", "https://httpstatuses.com/400"),
             ArgumentException => (StatusCodes.Status400BadRequest, "Bad Request", "https://httpstatuses.com/400"),

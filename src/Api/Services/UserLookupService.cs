@@ -10,6 +10,7 @@ using Defra.Lis.Be4Fe.Models.Lookups.Models;
 public sealed partial class UserLookupService(
     ICachedDataService cachedDataService,
     ICattleApiClient cattleApiClient,
+    ICattleHoldingClient cattleHoldingClient,
     ILogger<UserLookupService> logger)
     : IUserLookupService
 {
@@ -39,6 +40,19 @@ public sealed partial class UserLookupService(
                 cphs,
                 "cph-provider",
                 cancellationToken);
+    }
+
+    public async Task<CachedLookupResponse<UserDetails>> GetUserDetailsAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        // Not normalised like the fixture lookup above: the subject is opaque and case-sensitive.
+        var details = await cattleHoldingClient.GetUserDetailsAsync(userId, cancellationToken);
+
+        return new CachedLookupResponse<UserDetails>
+        {
+            Source = LookupSources.CattleApi,
+            CachedUntilUtc = null,
+            Data = details,
+        };
     }
 
     private static string Normalise(string value)
