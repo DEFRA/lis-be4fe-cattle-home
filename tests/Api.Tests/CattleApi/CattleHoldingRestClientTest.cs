@@ -56,7 +56,7 @@ public sealed class CattleHoldingRestClientTest
 
         var request = handler.Requests.ShouldHaveSingleItem();
         request.Method.ShouldBe(HttpMethod.Get);
-        request.RequestUri!.ToString().ShouldBe("http://cattle-api.test/holdings/22/001/0001");
+        request.RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/holdings/22/001/0001");
         request.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldBe(["test-key"]);
     }
 
@@ -153,7 +153,7 @@ public sealed class CattleHoldingRestClientTest
 
         var cattle = await client.SearchCattleAsync("22-001-0001", new CattleSearchQuery(), TestContext.Current.CancellationToken);
 
-        handler.Requests.ShouldHaveSingleItem().RequestUri!.ToString().ShouldBe("http://cattle-api.test/holdings/22/001/0001/cattle");
+        handler.Requests.ShouldHaveSingleItem().RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/holdings/22/001/0001/cattle");
         cattle.Count.ShouldBe(2);
     }
 
@@ -213,7 +213,7 @@ public sealed class CattleHoldingRestClientTest
 
         var request = handler.Requests.ShouldHaveSingleItem();
         request.Method.ShouldBe(HttpMethod.Get);
-        request.RequestUri!.ToString().ShouldBe("http://cattle-api.test/cattle/UK200000000001");
+        request.RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/cattle/UK200000000001");
         request.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldBe(["test-key"]);
     }
 
@@ -266,7 +266,7 @@ public sealed class CattleHoldingRestClientTest
 
         // AbsoluteUri, not ToString(), which renders %20 back as a space.
         handler.Requests.ShouldHaveSingleItem().RequestUri!.AbsoluteUri
-            .ShouldBe("http://cattle-api.test/cattle/UK2%200000%2000001");
+            .ShouldBe("http://cattle-api.test/v1/cattle/UK2%200000%2000001");
     }
 
     [Fact]
@@ -312,7 +312,7 @@ public sealed class CattleHoldingRestClientTest
 
         var request = handler.Requests.ShouldHaveSingleItem();
         request.Method.ShouldBe(HttpMethod.Get);
-        request.RequestUri!.AbsoluteUri.ShouldBe("http://cattle-api.test/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
+        request.RequestUri!.AbsoluteUri.ShouldBe("http://cattle-api.test/v1/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
         request.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldBe(["test-key"]);
     }
 
@@ -325,7 +325,7 @@ public sealed class CattleHoldingRestClientTest
         await client.GetUserDetailsAsync("  Idp|User/1  ", TestContext.Current.CancellationToken);
 
         handler.Requests.ShouldHaveSingleItem().RequestUri!.AbsoluteUri
-            .ShouldBe("http://cattle-api.test/users/Idp%7CUser%2F1");
+            .ShouldBe("http://cattle-api.test/v1/users/Idp%7CUser%2F1");
     }
 
     [Fact]
