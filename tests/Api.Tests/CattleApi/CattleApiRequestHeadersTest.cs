@@ -32,7 +32,7 @@ public sealed class CattleApiRequestHeadersTest
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var outbound = handler.Requests.ShouldHaveSingleItem();
-        outbound.RequestUri!.ToString().ShouldBe("http://cattle-api.test/holdings/22/001/0001/cattle?sex=female");
+        outbound.RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/holdings/22/001/0001/cattle?sex=female");
         outbound.Headers.GetValues("x-cdp-request-id").ShouldBe(["corr-12345"]);
         outbound.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldBe(["configured-key"]);
     }

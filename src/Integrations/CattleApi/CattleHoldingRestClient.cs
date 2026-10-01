@@ -28,6 +28,9 @@ public sealed partial class CattleHoldingRestClient(
 
     private const string ApiDescription = "Cattle API";
 
+    // The cattle API serves every endpoint under a URL-segment version.
+    private const string ApiVersion = "v1";
+
     // The cattle API emits camelCase; the SDK's default is snake_case.
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 
@@ -38,7 +41,7 @@ public sealed partial class CattleHoldingRestClient(
         try
         {
             var details = await BuildStrategy("Get holding details", cancellationToken)
-                .WithResourceUrl($"holdings/{segments.ToRoute()}")
+                .WithResourceUrl($"{ApiVersion}/holdings/{segments.ToRoute()}")
                 .ExecuteAndTransform<CattleApiHolding, HoldingDetails>(holding => ToHoldingDetails(segments, holding));
 
             LogRetrievedHoldingDetails(segments.ToString());
@@ -65,7 +68,7 @@ public sealed partial class CattleHoldingRestClient(
         try
         {
             var strategy = BuildStrategy("Search cattle on holding", cancellationToken)
-                .WithResourceUrl($"holdings/{segments.ToRoute()}/cattle")
+                .WithResourceUrl($"{ApiVersion}/holdings/{segments.ToRoute()}/cattle")
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Eartag), "earTag", query.Eartag?.Trim() ?? string.Empty)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Breed), "breed", query.Breed?.Trim() ?? string.Empty)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Sex), "sex", query.Sex?.Trim() ?? string.Empty);
@@ -97,7 +100,7 @@ public sealed partial class CattleHoldingRestClient(
         try
         {
             var details = await BuildStrategy("Get cattle details", cancellationToken)
-                .WithResourceUrl($"cattle/{Uri.EscapeDataString(trimmedEarTag)}")
+                .WithResourceUrl($"{ApiVersion}/cattle/{Uri.EscapeDataString(trimmedEarTag)}")
                 .ExecuteAndTransform<CattleApiCattleDetails, CattleDetails>(ToCattleDetails);
 
             LogRetrievedCattleDetails(trimmedEarTag);
@@ -121,7 +124,7 @@ public sealed partial class CattleHoldingRestClient(
         try
         {
             var details = await BuildStrategy("Get user details", cancellationToken)
-                .WithResourceUrl($"users/{Uri.EscapeDataString(trimmedUserId)}")
+                .WithResourceUrl($"{ApiVersion}/users/{Uri.EscapeDataString(trimmedUserId)}")
                 .ExecuteAndTransform<CattleApiUserDetails, UserDetails>(user => ToUserDetails(trimmedUserId, user));
 
             LogRetrievedUserDetails(details.Cphs.Count, trimmedUserId);
