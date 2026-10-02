@@ -29,7 +29,6 @@ public static class HealthEndpoints
             .WithTags(OpenApiMetadata.Tag)
             .WithSummary(OpenApiMetadata.Get.Summary)
             .WithDescription(OpenApiMetadata.Get.Description)
-            .WithMetadata(new IgnoreCorrelationIdCheck())
-            .WithMetadata(new IgnoreApiKeyCheck());
+            .WithMetadata(new IgnoreCorrelationIdCheck());
     }
 }

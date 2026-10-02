@@ -48,6 +48,16 @@ public class ModuleEndpointsTest : IClassFixture<WebApplicationFactory<Program>>
         userDetails.GetProperty("operationId").GetString().ShouldBe("GetUserDetails");
         userDetails.GetProperty("summary").GetString().ShouldBe("Gets a user's details and associated CPHs.");
         userDetails.GetProperty("responses").TryGetProperty("404", out _).ShouldBeTrue();
+        userDetails.GetProperty("responses").TryGetProperty("401", out _).ShouldBeTrue();
+        userDetails.GetProperty("security")[0].TryGetProperty("ApiKey", out _).ShouldBeTrue();
+
+        var apiKey = document.RootElement.GetProperty("components").GetProperty("securitySchemes").GetProperty("ApiKey");
+        apiKey.GetProperty("type").GetString().ShouldBe("apiKey");
+        apiKey.GetProperty("in").GetString().ShouldBe("header");
+        apiKey.GetProperty("name").GetString().ShouldBe("x-api-key");
+
+        var health = document.RootElement.GetProperty("paths").GetProperty("/health").GetProperty("get");
+        health.TryGetProperty("security", out _).ShouldBeFalse();
     }
 
     [Fact]

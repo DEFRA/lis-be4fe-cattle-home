@@ -245,7 +245,12 @@ public sealed partial class CattleHoldingRestClient(
             throw new InvalidOperationException($"{CattleApiOptions.SectionName}:BaseUrl must be configured to call the cattle API.");
         }
 
-        var strategy = strategyFactory
+        if (string.IsNullOrWhiteSpace(options.ApiKey))
+        {
+            throw new InvalidOperationException($"{CattleApiOptions.SectionName}:ApiKey must be configured to call the cattle API.");
+        }
+
+        return strategyFactory
             .BuildRestStrategy()
             .WithLogger(logger)
             .WithCancellationToken(cancellationToken)
@@ -253,13 +258,7 @@ public sealed partial class CattleHoldingRestClient(
             .WithActionDescription(action)
             .WithBaseUrl(options.BaseUrl)
             .WithJsonSerializerOptions(SerializerOptions)
-            .WithGet();
-
-        if (!string.IsNullOrWhiteSpace(options.ApiKey))
-        {
-            strategy.WithHeader(ApiKeyHeaderName, options.ApiKey);
-        }
-
-        return strategy;
+            .WithGet()
+            .WithHeader(ApiKeyHeaderName, options.ApiKey);
     }
 }
