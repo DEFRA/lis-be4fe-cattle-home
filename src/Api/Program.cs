@@ -114,8 +114,6 @@ public class Program
         ConfigureExternalDependencies(services, configuration);
         ConfigureMongo(services, configuration);
         ConfigureOpenApi(services);
-
-        services.AddHealthChecks();
     }
 
     [ExcludeFromCodeCoverage]

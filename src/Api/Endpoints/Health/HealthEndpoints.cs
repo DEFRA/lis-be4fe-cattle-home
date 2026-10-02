@@ -6,22 +6,30 @@ namespace Defra.Lis.Be4Fe.Api.Endpoints.Health;
 
 using Defra.Lis.Be4Fe.Api.MetaData;
 using Defra.Lis.Be4Fe.Models.Health;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 public static class HealthEndpoints
 {
-    public static void UseHealthEndpoints(this IEndpointRouteBuilder app)
+    public static IEndpointConventionBuilder UseHealthEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet(RouteNames.Health, CalculateHealthRoute)
+        return app.MapHealthChecks(
+                RouteNames.Health,
+                new HealthCheckOptions
+                {
+                    ResponseWriter = async (context, report) =>
+                    {
+                        var response = new HealthStatus
+                        {
+                            Status = report.Status.ToString(),
+                        };
+                        await context.Response.WriteAsJsonAsync(response, context.RequestAborted);
+                    },
+                })
             .WithName(OpenApiMetadata.Get.Name)
             .WithTags(OpenApiMetadata.Tag)
             .WithSummary(OpenApiMetadata.Get.Summary)
             .WithDescription(OpenApiMetadata.Get.Description)
             .WithMetadata(new IgnoreCorrelationIdCheck())
             .WithMetadata(new IgnoreApiKeyCheck());
-    }
-
-    private static Task<IResult> CalculateHealthRoute()
-    {
-        return Task.FromResult(Results.Ok(new HealthStatus() { Status = "ok" }));
     }
 }
