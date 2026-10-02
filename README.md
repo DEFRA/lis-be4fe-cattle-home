@@ -35,7 +35,9 @@ The development profile wires:
 - `Mongo__DatabaseUri=mongodb://127.0.0.1:27017/`
 - `Mongo__DatabaseName=lis-be4fe-cattle-home`
 - `CattleApi__BaseUrl=http://localhost:5019` (the `lis-api-cattle` `dotnet run` port)
-- `CattleApi__ApiKey=` (sent as `x-api-key` when set; the cattle API does not enforce it locally)
+- `CattleApi__ApiKey=local-dev-cattle-api-key` (sent to the cattle API as `x-api-key`; required, and must match the
+  cattle API's `ApiKeyAuthentication__Keys__0`)
+- `ApiKeyAuthentication__Keys__0=local-dev-cattle-home-api-key` (the key callers must send; see below)
 
 Update `CattleApi__BaseUrl` to match the local cattle API host if it differs (the cattle API's
 compose stack publishes it on 8085).
@@ -53,6 +55,21 @@ is null and `sire_name` is unsupplied until the upstream contract carries them.
 User CPH responses are still read from `src/Api/Fixtures/CattleApi/cattle.json` until the cattle
 API provides them. The path can be overridden with `CattleApi__FixturePath`; relative paths are
 resolved from the published application directory.
+
+## Authentication
+
+Every `/api` endpoint requires an `x-api-key` header matching one of the configured keys, otherwise it returns
+`401` problem details. `/health`, the OpenAPI document and Scalar stay anonymous. This is the interim mechanism
+agreed in [LREG-560](https://eaflood.atlassian.net/browse/LREG-560) until AWS STS replaces it; the endpoints only
+reference the `ServiceToService` authorisation policy, so STS is added as another scheme on that policy.
+
+- `ApiKeyAuthentication__Keys__0`: accepted key, set as a CDP secret. It must equal `CATTLE_HOME_API_KEY` in
+  `lis-apps-cattle-home`.
+- `ApiKeyAuthentication__Keys__1`: optional second key, so the key can be rotated without downtime.
+- `CattleApi__ApiKey`: the key this service sends to the cattle API. A lookup without it fails with a configuration
+  error, and a 401 or 403 from the cattle API surfaces as a 500, never as the caller's own 401.
+
+With no inbound key configured the service still starts and answers `/health`, but rejects every `/api` request.
 
 ## Local container stack
 

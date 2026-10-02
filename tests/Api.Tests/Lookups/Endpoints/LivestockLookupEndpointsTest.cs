@@ -8,7 +8,9 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Defra.Lis.Be4Fe.Api;
+using Defra.Lis.Be4Fe.Api.Authentication;
 using Defra.Lis.Be4Fe.Api.Foundation.Caching;
+using Defra.Lis.Be4Fe.Api.Middleware.Headers;
 using Defra.Lis.Be4Fe.CattleApi;
 using Defra.Lis.Be4Fe.Models.Lookups.Models;
 using Microsoft.AspNetCore.Hosting;
@@ -28,7 +30,7 @@ public class LivestockLookupEndpointsTest
     public async Task GetCphsForUserShouldCacheProviderResponse()
     {
         await using var factory = new LookupTestFactory();
-        var client = factory.CreateClient();
+        var client = factory.CreateAuthenticatedClient();
 
         var first = await client.GetFromJsonAsync<CachedLookupResponse<List<UserCph>>>(
             "/api/users/alice/cphs",
@@ -57,7 +59,7 @@ public class LivestockLookupEndpointsTest
     public async Task GetCattleForCphShouldReturnCattleFromProvider()
     {
         await using var factory = new LookupTestFactory();
-        var client = factory.CreateClient();
+        var client = factory.CreateAuthenticatedClient();
 
         var response = await client.GetAsync("/api/cphs/12/345/6789/cattle", TestContext.Current.CancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<CachedLookupResponse<List<CattleSummary>>>(
@@ -79,7 +81,7 @@ public class LivestockLookupEndpointsTest
     public async Task GetCattleForCphShouldPassSearchFiltersToTheCattleApi()
     {
         await using var factory = new LookupTestFactory();
-        var client = factory.CreateClient();
+        var client = factory.CreateAuthenticatedClient();
 
         var response = await client.GetAsync("/api/cphs/12/345/6789/cattle?eartag=UK123&breed=Angus&sex=Female", TestContext.Current.CancellationToken);
 
@@ -94,7 +96,7 @@ public class LivestockLookupEndpointsTest
     public async Task GetHoldingDetailsShouldReturnDetailsFromTheCattleApi()
     {
         await using var factory = new LookupTestFactory();
-        var client = factory.CreateClient();
+        var client = factory.CreateAuthenticatedClient();
 
         var response = await client.GetAsync("/api/cphs/12/345/6789", TestContext.Current.CancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<CachedLookupResponse<HoldingDetails>>(
@@ -114,7 +116,7 @@ public class LivestockLookupEndpointsTest
     public async Task GetHoldingDetailsShouldReturnProblemDetailsWhenTheHoldingIsUnknown()
     {
         await using var factory = new LookupTestFactory();
-        var client = factory.CreateClient();
+        var client = factory.CreateAuthenticatedClient();
 
         var response = await client.GetAsync("/api/cphs/99/999/9999", TestContext.Current.CancellationToken);
 
@@ -127,7 +129,7 @@ public class LivestockLookupEndpointsTest
     public async Task GetCattleDetailsShouldReturnDetailsFromTheCattleApi()
     {
         await using var factory = new LookupTestFactory();
-        var client = factory.CreateClient();
+        var client = factory.CreateAuthenticatedClient();
 
         var response = await client.GetAsync("/api/cattle/uk200000000001", TestContext.Current.CancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<CachedLookupResponse<CattleDetails>>(
@@ -152,7 +154,7 @@ public class LivestockLookupEndpointsTest
     public async Task GetCattleDetailsShouldServeTheSecondCallFromTheCache()
     {
         await using var factory = new LookupTestFactory();
-        var client = factory.CreateClient();
+        var client = factory.CreateAuthenticatedClient();
 
         await client.GetAsync("/api/cattle/UK200000000001", TestContext.Current.CancellationToken);
         var second = await client.GetFromJsonAsync<CachedLookupResponse<CattleDetails>>(
@@ -169,7 +171,7 @@ public class LivestockLookupEndpointsTest
     public async Task GetCattleDetailsShouldReturnProblemDetails404WhenTheAnimalIsUnknown()
     {
         await using var factory = new LookupTestFactory();
-        var client = factory.CreateClient();
+        var client = factory.CreateAuthenticatedClient();
 
         var response = await client.GetAsync("/api/cattle/UNKNOWN-TAG", TestContext.Current.CancellationToken);
 
@@ -182,7 +184,7 @@ public class LivestockLookupEndpointsTest
     public async Task GetUserDetailsShouldReturnDetailsFromTheCattleApiWithoutCaching()
     {
         await using var factory = new LookupTestFactory();
-        var client = factory.CreateClient();
+        var client = factory.CreateAuthenticatedClient();
 
         await client.GetAsync("/api/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken);
         var response = await client.GetAsync("/api/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken);
@@ -208,7 +210,7 @@ public class LivestockLookupEndpointsTest
     public async Task GetUserDetailsShouldPassTheUserIdThroughWithoutChangingItsCase()
     {
         await using var factory = new LookupTestFactory();
-        var client = factory.CreateClient();
+        var client = factory.CreateAuthenticatedClient();
 
         await client.GetAsync("/api/users/AbC-def", TestContext.Current.CancellationToken);
 
@@ -219,7 +221,7 @@ public class LivestockLookupEndpointsTest
     public async Task GetUserDetailsShouldWriteTheResponseInSnakeCase()
     {
         await using var factory = new LookupTestFactory();
-        var client = factory.CreateClient();
+        var client = factory.CreateAuthenticatedClient();
 
         var body = await client.GetStringAsync("/api/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken);
 
@@ -231,7 +233,7 @@ public class LivestockLookupEndpointsTest
     public async Task GetUserDetailsShouldReturnProblemDetails404WhenTheUserIsUnknown()
     {
         await using var factory = new LookupTestFactory();
-        var client = factory.CreateClient();
+        var client = factory.CreateAuthenticatedClient();
 
         var response = await client.GetAsync("/api/users/unknown-user", TestContext.Current.CancellationToken);
 
@@ -244,7 +246,7 @@ public class LivestockLookupEndpointsTest
     public async Task GetUserDetailsShouldReturnProblemDetails400WhenTheCattleApiRejectsTheUserId()
     {
         await using var factory = new LookupTestFactory();
-        var client = factory.CreateClient();
+        var client = factory.CreateAuthenticatedClient();
 
         var response = await client.GetAsync("/api/users/rejected-user", TestContext.Current.CancellationToken);
 
@@ -253,12 +255,22 @@ public class LivestockLookupEndpointsTest
 
     private sealed class LookupTestFactory : WebApplicationFactory<Program>
     {
+        public const string TestApiKey = "test-api-key";
+
         public TestCattleApiClient CattleApiClient { get; } = new();
 
         public TestCattleHoldingClient HoldingClient { get; } = new();
 
+        public HttpClient CreateAuthenticatedClient()
+        {
+            var client = CreateClient();
+            client.DefaultRequestHeaders.Add(RequestHeaderNames.ApiKey, TestApiKey);
+            return client;
+        }
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            builder.UseSetting($"{ApiKeyAuthenticationOptions.SectionName}:Keys:0", TestApiKey);
             builder.ConfigureTestServices(services =>
             {
                 services.RemoveAll<IExternalDataCacheRepository>();
