@@ -14,7 +14,7 @@ public sealed class CattleApiOptions
     public string? BaseUrl { get; init; }
 
     /// <summary>
-    /// Gets the API key sent to the cattle API as <c>x-api-key</c>; omitted from requests when not configured.
+    /// Gets the API key sent to the cattle API as <c>x-api-key</c>. Required: the cattle API rejects calls without it.
     /// </summary>
     public string? ApiKey { get; init; }
 

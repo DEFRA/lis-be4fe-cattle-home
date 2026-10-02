@@ -60,15 +60,35 @@ public sealed class CattleHoldingRestClientTest
         request.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldBe(["test-key"]);
     }
 
-    [Fact]
-    public async Task GetHoldingDetailsShouldOmitTheApiKeyHeaderWhenNotConfigured()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public async Task ClientShouldFailClearlyWhenTheApiKeyIsNotConfigured(string? apiKey)
     {
-        handler.RespondWith(HttpStatusCode.OK, OakfieldHolding);
-        var client = CreateClient(apiKey: null);
+        var client = CreateClient(apiKey: apiKey);
 
-        await client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken);
+        var exception = await Should.ThrowAsync<InvalidOperationException>(
+            () => client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
 
-        handler.Requests.ShouldHaveSingleItem().Headers.Contains(CattleHoldingRestClient.ApiKeyHeaderName).ShouldBeFalse();
+        exception.Message.ShouldContain("CattleApi:ApiKey");
+        handler.Requests.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    [InlineData(HttpStatusCode.Forbidden)]
+    public async Task ClientShouldNotTurnACattleApiAuthFailureIntoACallerError(HttpStatusCode statusCode)
+    {
+        // The cattle API rejecting the BE4FE's own key is a configuration fault, not the UI's: it must surface as an
+        // upstream failure (500 through ApiExceptionHandler), never as a 400/404 or a 401 passed back to the caller.
+        handler.RespondWith(statusCode, $$"""{"status":{{(int)statusCode}}}""");
+        var client = CreateClient();
+
+        var exception = await Should.ThrowAsync<RestResponseException>(
+            () => client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken));
+
+        exception.ShouldNotBeAssignableTo<ArgumentException>();
     }
 
     [Fact]

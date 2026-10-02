@@ -6,6 +6,7 @@ namespace Defra.Lis.Be4Fe.Api;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using Defra.Lis.Be4Fe.Api.Authentication;
 using Defra.Lis.Be4Fe.Api.Config;
 using Defra.Lis.Be4Fe.Api.Endpoints;
 using Defra.Lis.Be4Fe.Api.Endpoints.Cattle;
@@ -110,6 +111,9 @@ public class Program
 
         services.AddHttpContextAccessor();
 
+        // Calls from the cattle-home UI: an API key for now, AWS STS later (LREG-560).
+        services.AddServiceToServiceAuthentication(configuration);
+
         ConfigureHeaderPropagation(services, configuration);
         ConfigureExternalDependencies(services, configuration);
         ConfigureMongo(services, configuration);
@@ -208,6 +212,7 @@ public class Program
 
                 return Task.CompletedTask;
             });
+            options.AddApiKeySecurity();
         });
     }
 
@@ -218,12 +223,15 @@ public class Program
         app.UseHeaderPropagation();
         app.UseExceptionHandler();
         app.UseRouting();
+        app.UseAuthentication();
+        app.UseAuthorization();
 
         app.MapOpenApi("/openapi/{documentName}.json");
         app.MapScalarApiReference();
         app.MapGet("/openapi", () => Results.Redirect("/openapi/v1.json"))
             .ExcludeFromDescription();
 
+        // Every /api endpoint requires AuthPolicies.ServiceToService; health and OpenAPI stay anonymous.
         app.UseHealthEndpoints();
         app.UseCattleEndpoints();
         app.UseCphEndpoints();

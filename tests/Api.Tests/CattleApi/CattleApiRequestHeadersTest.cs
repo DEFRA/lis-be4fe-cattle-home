@@ -16,7 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// Proves the production wiring: a request to the BE4FE reaches the cattle API through the SDK client
-/// carrying the propagated x-cdp-request-id and the configured x-api-key.
+/// carrying the propagated x-cdp-request-id and the configured x-api-key, never the caller's own key.
 /// </summary>
 public sealed class CattleApiRequestHeadersTest
 {
@@ -27,6 +27,7 @@ public sealed class CattleApiRequestHeadersTest
         await using var factory = new HeaderCaptureFactory(handler);
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("x-cdp-request-id", "corr-12345");
+        client.DefaultRequestHeaders.Add("x-api-key", "inbound-key");
 
         var response = await client.GetAsync("/api/cphs/22/001/0001/cattle?sex=female", TestContext.Current.CancellationToken);
 
@@ -43,6 +44,7 @@ public sealed class CattleApiRequestHeadersTest
         {
             builder.UseSetting("CattleApi:BaseUrl", "http://cattle-api.test/");
             builder.UseSetting("CattleApi:ApiKey", "configured-key");
+            builder.UseSetting("ApiKeyAuthentication:Keys:0", "inbound-key");
 
             builder.ConfigureTestServices(services =>
             {

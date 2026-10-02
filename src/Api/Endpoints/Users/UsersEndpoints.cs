@@ -4,6 +4,7 @@
 
 namespace Defra.Lis.Be4Fe.Api.Endpoints.Users;
 
+using Defra.Lis.Be4Fe.Api.Authentication;
 using Defra.Lis.Be4Fe.Api.Services;
 using Defra.Lis.Be4Fe.Models.Lookups.Models;
 
@@ -13,6 +14,7 @@ public static class UsersEndpoints
     {
         var group = app
             .MapGroup("/api")
+            .RequireServiceToServiceAuthorization()
             .WithTags(OpenApiMetadata.Tag);
 
         group.MapGet(RouteNames.Users + "/{userId}/cphs", GetCphsForUser)

@@ -4,6 +4,7 @@
 
 namespace Defra.Lis.Be4Fe.Api.Endpoints.Cattle;
 
+using Defra.Lis.Be4Fe.Api.Authentication;
 using Defra.Lis.Be4Fe.Api.Services;
 using Defra.Lis.Be4Fe.CattleApi;
 using Defra.Lis.Be4Fe.Models.Lookups.Models;
@@ -14,6 +15,7 @@ public static class CattleEndpoints
     {
         var group = app
             .MapGroup("/api")
+            .RequireServiceToServiceAuthorization()
             .WithTags(OpenApiMetadata.Tag);
 
         group.MapGet(RouteNames.Cattle + "/{cattleId}", GetCattleDetails)
