@@ -5,30 +5,33 @@
 namespace Defra.Lis.Be4Fe.Api.Endpoints.Health;
 
 using Defra.Lis.Be4Fe.Api.MetaData;
-using Defra.Lis.Be4Fe.Models.Health;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using HealthStatusModel = Defra.Lis.Be4Fe.Models.Health.HealthStatus;
 
 public static class HealthEndpoints
 {
-    public static IEndpointConventionBuilder UseHealthEndpoints(this IEndpointRouteBuilder app)
+    public static RouteHandlerBuilder UseHealthEndpoints(this IEndpointRouteBuilder app)
     {
-        return app.MapHealthChecks(
-                RouteNames.Health,
-                new HealthCheckOptions
-                {
-                    ResponseWriter = async (context, report) =>
-                    {
-                        var response = new HealthStatus
-                        {
-                            Status = report.Status.ToString(),
-                        };
-                        await context.Response.WriteAsJsonAsync(response, context.RequestAborted);
-                    },
-                })
+        return app.MapGet(RouteNames.Health, GetHealth)
             .WithName(OpenApiMetadata.Get.Name)
             .WithTags(OpenApiMetadata.Tag)
             .WithSummary(OpenApiMetadata.Get.Summary)
             .WithDescription(OpenApiMetadata.Get.Description)
+            .Produces<HealthStatusModel>()
             .WithMetadata(new IgnoreCorrelationIdCheck());
+    }
+
+    private static async Task<IResult> GetHealth(
+        HealthCheckService healthCheckService,
+        CancellationToken cancellationToken)
+    {
+        var report = await healthCheckService.CheckHealthAsync(cancellationToken);
+
+        var response = new HealthStatusModel { Status = report.Status.ToString() };
+
+        return TypedResults.Ok(response);
     }
 }
