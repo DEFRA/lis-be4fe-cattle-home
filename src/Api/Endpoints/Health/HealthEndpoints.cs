@@ -5,22 +5,33 @@
 namespace Defra.Lis.Be4Fe.Api.Endpoints.Health;
 
 using Defra.Lis.Be4Fe.Api.MetaData;
-using Defra.Lis.Be4Fe.Models.Health;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using HealthStatusModel = Defra.Lis.Be4Fe.Models.Health.HealthStatus;
 
 public static class HealthEndpoints
 {
-    public static void UseHealthEndpoints(this IEndpointRouteBuilder app)
+    public static RouteHandlerBuilder UseHealthEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet(RouteNames.Health, CalculateHealthRoute)
+        return app.MapGet(RouteNames.Health, GetHealthRoute)
             .WithName(OpenApiMetadata.Get.Name)
             .WithTags(OpenApiMetadata.Tag)
             .WithSummary(OpenApiMetadata.Get.Summary)
             .WithDescription(OpenApiMetadata.Get.Description)
+            .Produces<HealthStatusModel>()
             .WithMetadata(new IgnoreCorrelationIdCheck());
     }
 
-    private static Task<IResult> CalculateHealthRoute()
+    private static async Task<IResult> GetHealthRoute(
+        HealthCheckService healthCheckService,
+        CancellationToken cancellationToken)
     {
-        return Task.FromResult(Results.Ok(new HealthStatus() { Status = "ok" }));
+        var report = await healthCheckService.CheckHealthAsync(cancellationToken);
+
+        var response = new HealthStatusModel { Status = report.Status.ToString() };
+
+        return TypedResults.Ok(response);
     }
 }

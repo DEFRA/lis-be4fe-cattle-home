@@ -5,8 +5,10 @@
 namespace Defra.Lis.Be4Fe.Api.Tests.Foundation.Endpoints;
 
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Defra.Lis.Be4Fe.Api;
+using Defra.Lis.Be4Fe.Models.Health;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 public class ModuleEndpointsTest : IClassFixture<WebApplicationFactory<Program>>
@@ -19,11 +21,14 @@ public class ModuleEndpointsTest : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
-    public async Task GetHealthShouldReturnOk()
+    public async Task GetHealthShouldReturnHealthy()
     {
         var response = await client.GetAsync("/health", TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var health = await response.Content.ReadFromJsonAsync<HealthStatus>(TestContext.Current.CancellationToken);
+        health.ShouldNotBeNull();
+        health.Status.ShouldBe("Healthy");
     }
 
     [Fact]
