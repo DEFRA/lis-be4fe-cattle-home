@@ -15,7 +15,7 @@ public static class HealthEndpoints
 {
     public static RouteHandlerBuilder UseHealthEndpoints(this IEndpointRouteBuilder app)
     {
-        return app.MapGet(RouteNames.Health, GetHealth)
+        return app.MapGet(RouteNames.Health, GetHealthRoute)
             .WithName(OpenApiMetadata.Get.Name)
             .WithTags(OpenApiMetadata.Tag)
             .WithSummary(OpenApiMetadata.Get.Summary)
@@ -24,7 +24,7 @@ public static class HealthEndpoints
             .WithMetadata(new IgnoreCorrelationIdCheck());
     }
 
-    private static async Task<IResult> GetHealth(
+    private static async Task<IResult> GetHealthRoute(
         HealthCheckService healthCheckService,
         CancellationToken cancellationToken)
     {
