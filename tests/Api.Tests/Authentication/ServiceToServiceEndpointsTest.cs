@@ -7,6 +7,7 @@ namespace Defra.Lis.Be4Fe.Api.Tests.Authentication;
 using System.Net;
 using Defra.Lis.Be4Fe.Api;
 using Defra.Lis.Be4Fe.Api.Authentication;
+using Defra.Lis.Be4Fe.Api.Middleware.Headers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -43,7 +44,7 @@ public sealed class ServiceToServiceEndpointsTest : IClassFixture<ServiceToServi
     [InlineData("/api/cattle/UK200000000001")]
     public async Task ApiRequestWithoutTheKeyShouldBeRejected(string path)
     {
-        var response = await factory.CreateClient().GetAsync(path, TestContext.Current.CancellationToken);
+        var response = await CreateCorrelatedClient().GetAsync(path, TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
@@ -55,7 +56,7 @@ public sealed class ServiceToServiceEndpointsTest : IClassFixture<ServiceToServi
         using var request = new HttpRequestMessage(HttpMethod.Get, "/api/cphs/22/001/0001");
         request.Headers.Add("x-api-key", "not-the-key");
 
-        var response = await factory.CreateClient().SendAsync(request, TestContext.Current.CancellationToken);
+        var response = await CreateCorrelatedClient().SendAsync(request, TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
@@ -68,6 +69,14 @@ public sealed class ServiceToServiceEndpointsTest : IClassFixture<ServiceToServi
         var response = await factory.CreateClient().GetAsync(path, TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    // The correlation check runs before authentication, so these requests carry the header to reach it.
+    private HttpClient CreateCorrelatedClient()
+    {
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add(RequestHeaderNames.CorrelationId, "corr-auth-test");
+        return client;
     }
 
     public sealed class KeyedFactory : WebApplicationFactory<Program>

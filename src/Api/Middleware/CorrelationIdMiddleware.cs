@@ -8,7 +8,14 @@ using Defra.Lis.Be4Fe.Api.MetaData;
 using Defra.Lis.Be4Fe.Api.Middleware.Headers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Serilog.Context;
 
+/// <summary>
+/// Requires a single x-cdp-request-id header on every endpoint not marked with <see cref="IgnoreCorrelationIdCheck"/>
+/// (Correlation ID standard), rejecting the request with 400 otherwise. The value is stored in
+/// <see cref="CorrelationIdContext"/>, added to every log line as <c>CorrelationId</c> and echoed on the response.
+/// Must run after routing so the endpoint metadata is available.
+/// </summary>
 public partial class CorrelationIdMiddleware(ILogger<CorrelationIdMiddleware> logger) : JsonErrorMiddleware
 {
     public override async Task InvokeAsync(HttpContext context, RequestDelegate next)
@@ -21,7 +28,7 @@ public partial class CorrelationIdMiddleware(ILogger<CorrelationIdMiddleware> lo
             return;
         }
 
-        // check if the endpoint has the IgnoreCorrelationIdCheck metadata. If so, skip the API key check.
+        // check if the endpoint has the IgnoreCorrelationIdCheck metadata. If so, skip the correlation ID check.
         var ignoreCorrelationIdCheck = endpoint.Metadata.GetMetadata<IgnoreCorrelationIdCheck>() is not null;
         if (ignoreCorrelationIdCheck)
         {
@@ -31,21 +38,27 @@ public partial class CorrelationIdMiddleware(ILogger<CorrelationIdMiddleware> lo
 
         try
         {
-            var headers = context.Request.Headers;
-            var correlationId = headers.TryGetValue(RequestHeaderNames.CorrelationId, out var tid) ? tid.ToString() : null;
-            correlationId = NormalizeHeaderValue(correlationId);
+            var values = context.Request.Headers[RequestHeaderNames.CorrelationId];
+            var correlationId = values.Count == 1 ? NormalizeHeaderValue(values.ToString()) : null;
             if (string.IsNullOrWhiteSpace(correlationId))
             {
+                LogMissingCorrelationId(logger, context.Request.Method, context.Request.Path);
                 await WriteJsonErrorAsync(
                     context,
                     statusCode: StatusCodes.Status400BadRequest,
                     code: "missing_header",
-                    message: $"Header {RequestHeaderNames.CorrelationId} is required.",
+                    message: $"A single {RequestHeaderNames.CorrelationId} header is required.",
                     details: new { header = $"{RequestHeaderNames.CorrelationId}" });
                 return;
             }
 
-            await next(context);
+            CorrelationIdContext.Value = correlationId;
+            context.Response.Headers[RequestHeaderNames.CorrelationId] = correlationId;
+
+            using (LogContext.PushProperty("CorrelationId", correlationId))
+            {
+                await next(context);
+            }
         }
         catch (Exception ex)
         {

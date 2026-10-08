@@ -28,7 +28,8 @@ public sealed partial class ApiExceptionHandler(ILogger<ApiExceptionHandler> log
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error", "https://httpstatuses.com/500"),
         };
 
-        // Put useful values into the Serilog LogContext (works with Enrich.FromLogContext()).
+        // Put useful values into the Serilog LogContext (works with Enrich.FromLogContext()). The correlation
+        // middleware's scope has already unwound here, so the ID is read from the header it enforced.
         var correlationId = httpContext.Request.Headers[RequestHeaderNames.CorrelationId].ToString();
         using (LogContext.PushProperty("CorrelationId", correlationId))
         using (LogContext.PushProperty("TraceId", httpContext.TraceIdentifier))
@@ -55,10 +56,18 @@ public sealed partial class ApiExceptionHandler(ILogger<ApiExceptionHandler> log
             Extensions =
             {
                 ["traceId"] = httpContext.TraceIdentifier,
+                ["correlationId"] = correlationId,
             },
         };
 
         httpContext.Response.StatusCode = statusCode;
+
+        // The exception handler clears response headers, so echo the correlation ID again.
+        if (!string.IsNullOrEmpty(correlationId))
+        {
+            httpContext.Response.Headers[RequestHeaderNames.CorrelationId] = correlationId;
+        }
+
         await httpContext.Response.WriteAsJsonAsync(problem, cancellationToken);
 
         return true; // exception handled
