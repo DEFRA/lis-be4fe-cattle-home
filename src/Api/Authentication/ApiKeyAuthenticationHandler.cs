@@ -8,6 +8,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
+using Defra.Lis.Be4Fe.Api.Middleware.Headers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
@@ -25,9 +26,7 @@ public sealed partial class ApiKeyAuthenticationHandler(
     /// <summary>Gets the claim that identifies which configured key the caller presented.</summary>
     public const string ClientIdClaimType = "client_id";
 
-    private const string CdpRequestIdHeader = "x-cdp-request-id";
-
-    private string CdpRequestId => Request.Headers[CdpRequestIdHeader].ToString();
+    private string CdpRequestId => Request.Headers[RequestHeaderNames.CorrelationId].ToString();
 
     /// <inheritdoc />
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()

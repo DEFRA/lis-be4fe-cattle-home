@@ -10,6 +10,7 @@ using Defra.Lis.Be4Fe.Api.Middleware;
 using Defra.Lis.Be4Fe.Api.Middleware.Headers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Primitives;
 
 public sealed class RequestValidationMiddlewareTest
 {
@@ -66,6 +67,48 @@ public sealed class RequestValidationMiddlewareTest
         });
 
         nextCalled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task CorrelationIdValidationShouldRejectMoreThanOneValue()
+    {
+        var middleware = new CorrelationIdMiddleware(NullLogger<CorrelationIdMiddleware>.Instance);
+        var context = CreateContext(new object());
+        context.Request.Headers[RequestHeaderNames.CorrelationId] = new StringValues(["first", "second"]);
+
+        await middleware.InvokeAsync(context, _ => Task.CompletedTask);
+
+        context.Response.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public async Task CorrelationIdValidationShouldSetTheContextAndEchoTheHeader()
+    {
+        var middleware = new CorrelationIdMiddleware(NullLogger<CorrelationIdMiddleware>.Instance);
+        var context = CreateContext(new object());
+        context.Request.Headers[RequestHeaderNames.CorrelationId] = "corr-598";
+        string? seen = null;
+
+        await middleware.InvokeAsync(context, _ =>
+        {
+            seen = CorrelationIdContext.Value;
+            return Task.CompletedTask;
+        });
+
+        seen.ShouldBe("corr-598");
+        context.Response.Headers[RequestHeaderNames.CorrelationId].ToString().ShouldBe("corr-598");
+    }
+
+    [Fact]
+    public async Task CorrelationIdValidationShouldIgnoreTheLegacyCorrelationHeader()
+    {
+        var middleware = new CorrelationIdMiddleware(NullLogger<CorrelationIdMiddleware>.Instance);
+        var context = CreateContext(new object());
+        context.Request.Headers["x-correlation-id"] = "legacy";
+
+        await middleware.InvokeAsync(context, _ => Task.CompletedTask);
+
+        context.Response.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
     }
 
     [Fact]
