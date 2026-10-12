@@ -71,6 +71,16 @@ reference the `ServiceToService` authorisation policy, so STS is added as anothe
 
 With no inbound key configured the service still starts and answers `/health`, but rejects every `/api` request.
 
+## Correlation ID
+
+Every `/api` endpoint also requires a single `x-cdp-request-id` header (the
+[Correlation ID standard](https://eaflood.atlassian.net/wiki/spaces/LDD/pages/6438093586/Correlation+ID+standard));
+without it the request is rejected with `400` and `"code": "missing_header"` before authentication runs. The
+cattle-home UI always sends it (`@defra/lis-hubs-infra-core`); `/health`, the OpenAPI document and Scalar do not need
+it. The value is echoed on the response, returned as `correlationId` in error problem details, written as
+`CorrelationId` on every log line and forwarded to the cattle API. Send one yourself when calling the service by
+hand, for example `-H 'x-cdp-request-id: local-test-1'`.
+
 ## Local container stack
 
 Bring up the API and MongoDB together:

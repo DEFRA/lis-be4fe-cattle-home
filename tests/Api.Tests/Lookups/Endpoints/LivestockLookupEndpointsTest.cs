@@ -265,6 +265,7 @@ public class LivestockLookupEndpointsTest
         {
             var client = CreateClient();
             client.DefaultRequestHeaders.Add(RequestHeaderNames.ApiKey, TestApiKey);
+            client.DefaultRequestHeaders.Add(RequestHeaderNames.CorrelationId, "corr-lookup-test");
             return client;
         }
 

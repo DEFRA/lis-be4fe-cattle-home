@@ -6,6 +6,7 @@ namespace Defra.Lis.Be4Fe.Api.Tests.Exceptions;
 
 using System.Text.Json;
 using Defra.Lis.Be4Fe.Api.Exceptions;
+using Defra.Lis.Be4Fe.Api.Middleware.Headers;
 using Defra.Lis.Be4Fe.CattleApi;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -48,5 +49,21 @@ public sealed class ApiExceptionHandlerTest
         problem.GetProperty("detail").GetString().ShouldBe(exception.Message);
         problem.GetProperty("instance").GetString().ShouldBe("/api/test");
         problem.GetProperty("traceId").GetString().ShouldBe("trace-123");
+    }
+
+    [Fact]
+    public async Task ShouldReturnAndEchoTheCorrelationId()
+    {
+        var handler = new ApiExceptionHandler(NullLogger<ApiExceptionHandler>.Instance);
+        var context = new DefaultHttpContext();
+        context.Request.Headers[RequestHeaderNames.CorrelationId] = "corr-598";
+        context.Response.Body = new MemoryStream();
+
+        await handler.TryHandleAsync(context, new NotFoundException("missing"), TestContext.Current.CancellationToken);
+
+        context.Response.Headers[RequestHeaderNames.CorrelationId].ToString().ShouldBe("corr-598");
+        context.Response.Body.Position = 0;
+        using var document = await JsonDocument.ParseAsync(context.Response.Body, cancellationToken: TestContext.Current.CancellationToken);
+        document.RootElement.GetProperty("correlationId").GetString().ShouldBe("corr-598");
     }
 }

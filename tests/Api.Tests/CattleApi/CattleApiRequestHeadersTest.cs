@@ -38,6 +38,21 @@ public sealed class CattleApiRequestHeadersTest
         outbound.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldBe(["configured-key"]);
     }
 
+    [Fact]
+    public async Task RequestWithoutTheCorrelationIdShouldBeRejectedBeforeCallingTheCattleApi()
+    {
+        var handler = new StubHttpMessageHandler().RespondWith(HttpStatusCode.OK, "[]");
+        await using var factory = new HeaderCaptureFactory(handler);
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("x-api-key", "inbound-key");
+
+        var response = await client.GetAsync("/api/cphs/22/001/0001/cattle", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).ShouldContain("missing_header");
+        handler.Requests.ShouldBeEmpty();
+    }
+
     private sealed class HeaderCaptureFactory(StubHttpMessageHandler handler) : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)

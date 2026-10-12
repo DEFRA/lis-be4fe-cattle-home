@@ -8,4 +8,7 @@ public partial class CorrelationIdMiddleware
 {
     [LoggerMessage(LogLevel.Error, "Error in {MiddlewareName}")]
     static partial void LogErrorInMiddleware(ILogger logger, string middlewareName, Exception exception);
+
+    [LoggerMessage(LogLevel.Warning, "Rejected request without a single x-cdp-request-id header for {Method} {Path}")]
+    static partial void LogMissingCorrelationId(ILogger logger, string method, PathString path);
 }

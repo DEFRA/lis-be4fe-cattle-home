@@ -15,6 +15,8 @@ using Defra.Lis.Be4Fe.Api.Endpoints.Health;
 using Defra.Lis.Be4Fe.Api.Endpoints.Users;
 using Defra.Lis.Be4Fe.Api.Exceptions;
 using Defra.Lis.Be4Fe.Api.Foundation.Caching;
+using Defra.Lis.Be4Fe.Api.MetaData;
+using Defra.Lis.Be4Fe.Api.Middleware;
 using Defra.Lis.Be4Fe.Api.Services;
 using Defra.Lis.Be4Fe.Api.Utils;
 using Defra.Lis.Be4Fe.Api.Utils.Http;
@@ -91,29 +93,18 @@ public class Program
             .AddHttpClient("proxy")
             .ConfigurePrimaryHttpMessageHandler<ProxyHttpMessageHandler>();
 
-        // Propagate trace header.
-        builder.Services.AddHeaderPropagation(options =>
-        {
-            var traceHeader = builder.Configuration.GetValue<string>("TraceHeader");
-            if (!string.IsNullOrWhiteSpace(traceHeader))
-            {
-                options.Headers.Add(traceHeader);
-            }
-        });
-
         var services = builder.Services;
 
         // Trust material must be loaded before anything creates outbound connections.
         services.LoadCustomTrustStoreFromEnvironment();
 
-        services.AddProblemDetails();
         services.AddValidation();
-
-        services.AddHttpContextAccessor();
 
         // Calls from the cattle-home UI: an API key for now, AWS STS later (LREG-560).
         services.AddServiceToServiceAuthentication(configuration);
 
+        // Require x-cdp-request-id on every /api endpoint (Correlation ID standard) and propagate it downstream.
+        services.AddTransient<CorrelationIdMiddleware>();
         ConfigureHeaderPropagation(services, configuration);
         ConfigureExternalDependencies(services, configuration);
         ConfigureMongo(services, configuration);
@@ -221,15 +212,18 @@ public class Program
         app.UseHeaderPropagation();
         app.UseExceptionHandler();
         app.UseRouting();
+        app.UseMiddleware<CorrelationIdMiddleware>();
         app.UseAuthentication();
         app.UseAuthorization();
 
-        app.MapOpenApi("/openapi/{documentName}.json");
-        app.MapScalarApiReference();
+        app.MapOpenApi("/openapi/{documentName}.json").WithMetadata(new IgnoreCorrelationIdCheck());
+        app.MapScalarApiReference().WithMetadata(new IgnoreCorrelationIdCheck());
         app.MapGet("/openapi", () => Results.Redirect("/openapi/v1.json"))
-            .ExcludeFromDescription();
+            .ExcludeFromDescription()
+            .WithMetadata(new IgnoreCorrelationIdCheck());
 
-        // Every /api endpoint requires AuthPolicies.ServiceToService; health and OpenAPI stay anonymous.
+        // Every /api endpoint requires AuthPolicies.ServiceToService and x-cdp-request-id; health and OpenAPI stay
+        // anonymous and need no correlation header.
         app.UseHealthEndpoints();
         app.UseCattleEndpoints();
         app.UseCphEndpoints();
