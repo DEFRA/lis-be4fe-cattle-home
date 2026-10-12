@@ -20,6 +20,8 @@ public sealed class ApiExceptionHandlerTest
         { new CattleNotFoundException("UK999999999999"), StatusCodes.Status404NotFound, "Not Found" },
         { new UserNotFoundException("unknown-user"), StatusCodes.Status404NotFound, "Not Found" },
         { new ConflictException("duplicate"), StatusCodes.Status409Conflict, "Conflict" },
+        { new UserConflictException("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51"), StatusCodes.Status409Conflict, "Conflict" },
+        { new ServiceUnavailableException("try again later", new HttpRequestException()), StatusCodes.Status503ServiceUnavailable, "Service Unavailable" },
         { new BusinessRuleException("invalid"), StatusCodes.Status400BadRequest, "Bad Request" },
         { new ArgumentException("bad argument"), StatusCodes.Status400BadRequest, "Bad Request" },
         { new UnauthorizedAccessException("denied"), StatusCodes.Status403Forbidden, "Forbidden" },

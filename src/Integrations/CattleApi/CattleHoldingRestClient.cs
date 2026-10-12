@@ -14,8 +14,8 @@ using Defra.Livestock.Sdk.Api.Strategies.Abstractions.Operations.Http.Rest;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Passes holding details, cattle-on-holding queries, single-animal details and user details through to the
-/// cattle API using the strategies SDK REST strategy. The API key travels as <c>x-api-key</c>; the
+/// Passes holding details, cattle-on-holding queries, single-animal details, user details and user creation through
+/// to the cattle API using the strategies SDK REST strategy. The API key travels as <c>x-api-key</c>; the
 /// correlation header is added by header propagation on the SDK's HTTP client.
 /// </summary>
 public sealed partial class CattleHoldingRestClient(
@@ -142,6 +142,42 @@ public sealed partial class CattleHoldingRestClient(
         }
     }
 
+    public async Task<UserDetails> CreateUserAsync(CreateUserRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        // The claims are validated by the cattle API; the subject is the only one logged, as the rest are personal data.
+        var subject = request.Sub?.Trim() ?? string.Empty;
+        var payload = new CattleApiCreateUserRequest(request.Sub, request.Email, request.GivenName, request.FamilyName);
+
+        try
+        {
+            var details = await BuildStrategy("Create user", cancellationToken)
+                .WithPost()
+                .WithResourceUrl($"{ApiVersion}/users")
+                .WithPayload(payload)
+                .ExecuteAndTransform<CattleApiUserDetails, UserDetails>(user => ToUserDetails(subject, user));
+
+            LogCreatedUser(details.Cphs.Count, subject);
+
+            return details;
+        }
+        catch (RestResponseException ex) when (IsBadRequest(ex))
+        {
+            throw new ArgumentException("The cattle API rejected the user account claims.", nameof(request), ex);
+        }
+        catch (RestResponseException ex) when (HasStatus(ex, HttpStatusCode.Conflict))
+        {
+            LogUserConflict(subject);
+            throw new UserConflictException(subject);
+        }
+        catch (RestResponseException ex) when (HasStatus(ex, HttpStatusCode.ServiceUnavailable))
+        {
+            LogCattleApiUnavailable("Create user");
+            throw new ServiceUnavailableException("The user account service is temporarily unavailable, try again later.", ex);
+        }
+    }
+
     internal static UserDetails ToUserDetails(string requestedUserId, CattleApiUserDetails user)
     {
         ArgumentNullException.ThrowIfNull(user);
@@ -232,11 +268,12 @@ public sealed partial class CattleHoldingRestClient(
         };
     }
 
-    private static bool IsNotFound(RestResponseException exception) =>
-        exception.InnerException is HttpRequestException { StatusCode: HttpStatusCode.NotFound };
+    private static bool IsNotFound(RestResponseException exception) => HasStatus(exception, HttpStatusCode.NotFound);
 
-    private static bool IsBadRequest(RestResponseException exception) =>
-        exception.InnerException is HttpRequestException { StatusCode: HttpStatusCode.BadRequest };
+    private static bool IsBadRequest(RestResponseException exception) => HasStatus(exception, HttpStatusCode.BadRequest);
+
+    private static bool HasStatus(RestResponseException exception, HttpStatusCode statusCode) =>
+        exception.InnerException is HttpRequestException { StatusCode: { } actual } && actual == statusCode;
 
     private IRestStrategy<CattleHoldingRestClient> BuildStrategy(string action, CancellationToken cancellationToken)
     {

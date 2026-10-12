@@ -21,10 +21,11 @@ public sealed partial class ApiExceptionHandler(ILogger<ApiExceptionHandler> log
         {
             NotFoundException or HoldingNotFoundException or CattleNotFoundException or UserNotFoundException
                 => (StatusCodes.Status404NotFound, "Not Found", "https://httpstatuses.com/404"),
-            ConflictException => (StatusCodes.Status409Conflict, "Conflict", "https://httpstatuses.com/409"),
+            ConflictException or UserConflictException => (StatusCodes.Status409Conflict, "Conflict", "https://httpstatuses.com/409"),
             BusinessRuleException => (StatusCodes.Status400BadRequest, "Bad Request", "https://httpstatuses.com/400"),
             ArgumentException => (StatusCodes.Status400BadRequest, "Bad Request", "https://httpstatuses.com/400"),
             UnauthorizedAccessException => (StatusCodes.Status403Forbidden, "Forbidden", "https://httpstatuses.com/403"),
+            ServiceUnavailableException => (StatusCodes.Status503ServiceUnavailable, "Service Unavailable", "https://httpstatuses.com/503"),
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error", "https://httpstatuses.com/500"),
         };
 

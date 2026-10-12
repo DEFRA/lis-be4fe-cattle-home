@@ -253,6 +253,79 @@ public class LivestockLookupEndpointsTest
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
+    [Fact]
+    public async Task CreateUserShouldPassTheClaimsToTheCattleApiAndWrapTheResponse()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateAuthenticatedClient();
+
+        var response = await client.PostAsync("/api/users", ClaimsBody("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51"), TestContext.Current.CancellationToken);
+        var payload = await response.Content.ReadFromJsonAsync<CachedLookupResponse<UserDetails>>(
+            SerializerOptions,
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        payload.ShouldNotBeNull();
+        payload.Source.ShouldBe("cattle-api");
+        payload.CachedUntilUtc.ShouldBeNull();
+        payload.Data.Subject.ShouldBe("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
+        payload.Data.Cphs.ShouldHaveSingleItem().Cph.ShouldBe("22/001/0001");
+        var claims = factory.HoldingClient.LastCreateUserRequest.ShouldNotBeNull();
+        claims.Sub.ShouldBe("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
+        claims.Email.ShouldBe("contact@test.com");
+        claims.GivenName.ShouldBe("FirstName");
+        claims.FamilyName.ShouldBe("LastName");
+    }
+
+    [Fact]
+    public async Task CreateUserShouldWriteTheResponseInSnakeCase()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateAuthenticatedClient();
+
+        var response = await client.PostAsync("/api/users", ClaimsBody("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51"), TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        body.ShouldContain("\"cached_until_utc\":null");
+        body.ShouldContain("\"display_name\":\"Test Keeper\"");
+    }
+
+    [Theory]
+    [InlineData("rejected-user", HttpStatusCode.BadRequest)]
+    [InlineData("conflict-user", HttpStatusCode.Conflict)]
+    [InlineData("unavailable-user", HttpStatusCode.ServiceUnavailable)]
+    public async Task CreateUserShouldReturnProblemDetailsForCattleApiFailures(string sub, HttpStatusCode expected)
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateAuthenticatedClient();
+
+        var response = await client.PostAsync("/api/users", ClaimsBody(sub), TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(expected);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.ShouldContain($"\"status\":{(int)expected}");
+    }
+
+    [Fact]
+    public async Task CreateUserShouldReturnProblemDetails400WhenTheBodyIsJsonNull()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateAuthenticatedClient();
+
+        var response = await client.PostAsync(
+            "/api/users",
+            new StringContent("null", System.Text.Encoding.UTF8, "application/json"),
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        factory.HoldingClient.LastCreateUserRequest.ShouldBeNull();
+    }
+
+    private static StringContent ClaimsBody(string sub) => new(
+        $$"""{"sub":"{{sub}}","email":"contact@test.com","given_name":"FirstName","family_name":"LastName"}""",
+        System.Text.Encoding.UTF8,
+        "application/json");
+
     private sealed class LookupTestFactory : WebApplicationFactory<Program>
     {
         public const string TestApiKey = "test-api-key";
@@ -298,6 +371,31 @@ public class LivestockLookupEndpointsTest
         public string? LastUserId { get; private set; }
 
         public int UserDetailCallCount { get; private set; }
+
+        public CreateUserRequest? LastCreateUserRequest { get; private set; }
+
+        public Task<UserDetails> CreateUserAsync(CreateUserRequest request, CancellationToken cancellationToken = default)
+        {
+            LastCreateUserRequest = request;
+            var sub = request.Sub ?? string.Empty;
+
+            if (sub.StartsWith("rejected", StringComparison.Ordinal))
+            {
+                throw new ArgumentException("The cattle API rejected the user account claims.", nameof(request));
+            }
+
+            if (sub.StartsWith("conflict", StringComparison.Ordinal))
+            {
+                throw new UserConflictException(sub);
+            }
+
+            if (sub.StartsWith("unavailable", StringComparison.Ordinal))
+            {
+                throw new ServiceUnavailableException("The user account service is temporarily unavailable, try again later.", new HttpRequestException());
+            }
+
+            return GetUserDetailsAsync(sub, cancellationToken);
+        }
 
         public Task<UserDetails> GetUserDetailsAsync(string userId, CancellationToken cancellationToken = default)
         {
