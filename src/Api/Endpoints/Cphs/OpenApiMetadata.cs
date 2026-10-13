@@ -17,6 +17,13 @@ public static class OpenApiMetadata
         public const string Description = "Returns the holding details (name, address, keeper, herd marks, allowed species) for a county/parish/holding number from the cattle API.";
     }
 
+    public static class SearchHoldings
+    {
+        public const string Name = "SearchHoldings";
+        public const string Summary = "Searches holdings with search, paging and sorting.";
+        public const string Description = "Retrieves a paginated list of holding details matching the search, sorting and paging criteria from the cattle API.";
+    }
+
     public static class GetCattleForCph
     {
         public const string Name = "GetCattleForCph";

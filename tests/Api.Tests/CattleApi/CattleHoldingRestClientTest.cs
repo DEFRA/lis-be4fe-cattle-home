@@ -19,7 +19,31 @@ public sealed class CattleHoldingRestClientTest
     private const string OakfieldHolding = """
         {"cph":"22/001/0001","name":"Oakfield Farm","holdingType":"AH",
          "address":["Oakfield Farm","Church Lane","Shrewsbury","Shropshire","SY4 1AB","England"],
-         "keeperName":"Oakfield Farmer","herdMarks":["UK 324537"],"allowedSpecies":["Cattle"]}
+         "keeperName":"Oakfield Farmer",
+         "herdMarks":[{"mark":"UK 324537","startDate":"2020-01-01T00:00:00+00:00","endDate":null,"species":["Cattle"]}],
+         "allowedSpecies":["Cattle"],
+         "associations":[{"customerNumber":"CN123","title":"Mr","firstName":"Oakfield","lastName":"Farmer","name":"Oakfield Farmer","partyType":"Individual","email":"farmer@example.com","mobile":"07123456789","telephone":"0123456789","address":["Oakfield Farm"],"roles":[{"code":"KEEPER","species":["Cattle"]}]}]}
+        """;
+
+    private const string PaginatedHoldings = """
+        {
+          "count": 1,
+          "totalCount": 25,
+          "page": 2,
+          "pageSize": 10,
+          "totalPages": 3,
+          "hasNextPage": true,
+          "hasPreviousPage": true,
+          "items": [
+            {
+              "cph": "22/001/0001",
+              "name": "Oakfield Farm",
+              "holdingType": "AH",
+              "address": ["Oakfield Farm", "Church Lane", "Shrewsbury", "Shropshire", "SY4 1AB", "England"],
+              "keeperName": "Oakfield Farmer"
+            }
+          ]
+        }
         """;
 
     private const string TwoCattle = """
@@ -103,11 +127,28 @@ public sealed class CattleHoldingRestClientTest
         details.Cph.ShouldBe("22/001/0001");
         details.Name.ShouldBe("Oakfield Farm");
         details.HoldingType.ShouldBe("AH");
-        details.RegisteredKeeper.ShouldBe("Oakfield Farmer");
+        details.KeeperName.ShouldBe("Oakfield Farmer");
         details.Address.ShouldBe(["Oakfield Farm", "Church Lane", "Shrewsbury", "Shropshire", "SY4 1AB", "England"]);
-        details.HerdMarks.ShouldBe(["UK 324537"]);
+        var mark = details.HerdMarks.ShouldHaveSingleItem();
+        mark.Mark.ShouldBe("UK 324537");
+        mark.StartDate.ShouldBe(DateTimeOffset.Parse("2020-01-01T00:00:00+00:00"));
+        mark.EndDate.ShouldBeNull();
+        mark.Species.ShouldBe(["Cattle"]);
         details.AllowedSpecies.ShouldBe(["Cattle"]);
-        details.BusinessName.ShouldBeNull();
+        var association = details.Associations.ShouldHaveSingleItem();
+        association.CustomerNumber.ShouldBe("CN123");
+        association.Title.ShouldBe("Mr");
+        association.FirstName.ShouldBe("Oakfield");
+        association.LastName.ShouldBe("Farmer");
+        association.Name.ShouldBe("Oakfield Farmer");
+        association.PartyType.ShouldBe("Individual");
+        association.Email.ShouldBe("farmer@example.com");
+        association.Mobile.ShouldBe("07123456789");
+        association.Telephone.ShouldBe("0123456789");
+        association.Address.ShouldBe(["Oakfield Farm"]);
+        var role = association.Roles.ShouldHaveSingleItem();
+        role.Code.ShouldBe("KEEPER");
+        role.Species.ShouldBe(["Cattle"]);
     }
 
     [Fact]
@@ -152,6 +193,54 @@ public sealed class CattleHoldingRestClientTest
 
         await Should.ThrowAsync<RestResponseException>(
             () => client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task SearchHoldingsShouldCallTheHoldingsRouteWithoutParametersByDefault()
+    {
+        handler.RespondWith(HttpStatusCode.OK, PaginatedHoldings);
+        var client = CreateClient();
+
+        var result = await client.SearchHoldingsAsync(new HoldingSearchQuery(), TestContext.Current.CancellationToken);
+
+        handler.Requests.ShouldHaveSingleItem().RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/holdings");
+        result.Count.ShouldBe(1);
+        result.TotalCount.ShouldBe(25);
+        result.Page.ShouldBe(2);
+        result.PageSize.ShouldBe(10);
+        result.TotalPages.ShouldBe(3);
+        result.HasNextPage.ShouldBeTrue();
+        result.HasPreviousPage.ShouldBeTrue();
+
+        var holding = result.Items.ShouldHaveSingleItem();
+        holding.Cph.ShouldBe("22/001/0001");
+        holding.Name.ShouldBe("Oakfield Farm");
+        holding.HoldingType.ShouldBe("AH");
+        holding.Address.ShouldBe(["Oakfield Farm", "Church Lane", "Shrewsbury", "Shropshire", "SY4 1AB", "England"]);
+        holding.KeeperName.ShouldBe("Oakfield Farmer");
+    }
+
+    [Fact]
+    public async Task SearchHoldingsShouldPassSearchPagingAndSortingQueryParameters()
+    {
+        handler.RespondWith(HttpStatusCode.OK, PaginatedHoldings);
+        var client = CreateClient();
+
+        await client.SearchHoldingsAsync(
+            new HoldingSearchQuery(Search: " Oakfield ", Page: 2, PageSize: 10, Sort: "name", Order: "desc"),
+            TestContext.Current.CancellationToken);
+
+        handler.Requests.ShouldHaveSingleItem().RequestUri!.Query.ShouldBe("?Search=Oakfield&Page=2&PageSize=10&Sort=name&Order=desc");
+    }
+
+    [Fact]
+    public async Task SearchHoldingsShouldThrowArgumentExceptionWhenTheCattleApiRejectsQuery()
+    {
+        handler.RespondWith(HttpStatusCode.BadRequest, """{"title":"Bad Request","status":400}""");
+        var client = CreateClient();
+
+        await Should.ThrowAsync<ArgumentException>(
+            () => client.SearchHoldingsAsync(new HoldingSearchQuery(Page: -1), TestContext.Current.CancellationToken));
     }
 
     [Theory]

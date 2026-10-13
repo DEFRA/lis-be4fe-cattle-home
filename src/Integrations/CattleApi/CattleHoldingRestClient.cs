@@ -4,6 +4,7 @@
 
 namespace Defra.Lis.Be4Fe.CattleApi;
 
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Defra.Lis.Be4Fe.CattleApi.Dto;
@@ -34,7 +35,7 @@ public sealed partial class CattleHoldingRestClient(
     // The cattle API emits camelCase; the SDK's default is snake_case.
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 
-    public async Task<HoldingDetails> GetHoldingDetailsAsync(string cph, CancellationToken cancellationToken = default)
+    public async Task<HoldingDetailedResponse> GetHoldingDetailsAsync(string cph, CancellationToken cancellationToken = default)
     {
         var segments = CphSegments.Parse(cph);
 
@@ -42,7 +43,7 @@ public sealed partial class CattleHoldingRestClient(
         {
             var details = await BuildStrategy("Get holding details", cancellationToken)
                 .WithResourceUrl($"{ApiVersion}/holdings/{segments.ToRoute()}")
-                .ExecuteAndTransform<CattleApiHolding, HoldingDetails>(holding => ToHoldingDetails(segments, holding));
+                .ExecuteAndTransform<CattleApiHoldingDetailed, HoldingDetailedResponse>(holding => ToHoldingDetails(segments, holding));
 
             LogRetrievedHoldingDetails(segments.ToString());
 
@@ -56,6 +57,31 @@ public sealed partial class CattleHoldingRestClient(
         catch (RestResponseException ex) when (IsBadRequest(ex))
         {
             throw new ArgumentException($"The cattle API rejected CPH '{segments}'.", nameof(cph), ex);
+        }
+    }
+
+    public async Task<PaginatedResponse<HoldingResponse>> SearchHoldingsAsync(HoldingSearchQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        try
+        {
+            var result = await BuildStrategy("Search holdings", cancellationToken)
+                .WithResourceUrl($"{ApiVersion}/holdings")
+                .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Search), "Search", query.Search?.Trim() ?? string.Empty)
+                .WithQueryParameter(() => query.Page.HasValue, "Page", query.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
+                .WithQueryParameter(() => query.PageSize.HasValue, "PageSize", query.PageSize?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
+                .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Sort), "Sort", query.Sort?.Trim() ?? string.Empty)
+                .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Order), "Order", query.Order?.Trim() ?? string.Empty)
+                .ExecuteAndTransform<CattleApiPaginatedResponse<CattleApiHolding>, PaginatedResponse<HoldingResponse>>(ToPaginatedHoldings);
+
+            LogRetrievedHoldings(result.Items.Count, result.TotalCount, result.Page, result.TotalPages, !query.IsEmpty);
+
+            return result;
+        }
+        catch (RestResponseException ex) when (IsBadRequest(ex))
+        {
+            throw new ArgumentException("The cattle API rejected the holdings search query.", nameof(query), ex);
         }
     }
 
@@ -178,7 +204,7 @@ public sealed partial class CattleHoldingRestClient(
         }
     }
 
-    internal static UserDetails ToUserDetails(string requestedUserId, CattleApiUserDetails user)
+    private static UserDetails ToUserDetails(string requestedUserId, CattleApiUserDetails user)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -202,7 +228,7 @@ public sealed partial class CattleHoldingRestClient(
         };
     }
 
-    internal static CattleDetails ToCattleDetails(CattleApiCattleDetails cattle)
+    private static CattleDetails ToCattleDetails(CattleApiCattleDetails cattle)
     {
         ArgumentNullException.ThrowIfNull(cattle);
 
@@ -232,23 +258,84 @@ public sealed partial class CattleHoldingRestClient(
         };
     }
 
-    internal static HoldingDetails ToHoldingDetails(CphSegments requested, CattleApiHolding holding)
+    private static HoldingDetailedResponse ToHoldingDetails(CphSegments requested, CattleApiHoldingDetailed holdingDetailed)
     {
-        ArgumentNullException.ThrowIfNull(holding);
+        ArgumentNullException.ThrowIfNull(holdingDetailed);
 
-        return new HoldingDetails
+        return new HoldingDetailedResponse
         {
-            Cph = string.IsNullOrWhiteSpace(holding.Cph) ? requested.ToString() : holding.Cph,
-            Name = holding.Name,
-            HoldingType = holding.HoldingType,
-            RegisteredKeeper = holding.KeeperName,
-            Address = holding.Address ?? [],
-            HerdMarks = holding.HerdMarks ?? [],
-            AllowedSpecies = holding.AllowedSpecies ?? [],
+            Cph = string.IsNullOrWhiteSpace(holdingDetailed.Cph) ? requested.ToString() : holdingDetailed.Cph,
+            Name = holdingDetailed.Name,
+            HoldingType = holdingDetailed.HoldingType,
+            KeeperName = holdingDetailed.KeeperName,
+            Address = holdingDetailed.Address ?? [],
+            HerdMarks = holdingDetailed.HerdMarks?
+                .Select(m => new HoldingMarkResponse
+                {
+                    Mark = m.Mark,
+                    StartDate = m.StartDate,
+                    EndDate = m.EndDate,
+                    Species = m.Species ?? [],
+                })
+                .ToList() ?? [],
+            AllowedSpecies = holdingDetailed.AllowedSpecies ?? [],
+            Associations = holdingDetailed.Associations?
+                .Select(a => new HoldingAssociationResponse
+                {
+                    CustomerNumber = a.CustomerNumber,
+                    Title = a.Title,
+                    FirstName = a.FirstName,
+                    LastName = a.LastName,
+                    Name = a.Name,
+                    PartyType = a.PartyType,
+                    Email = a.Email,
+                    Mobile = a.Mobile,
+                    Telephone = a.Telephone,
+                    Address = a.Address ?? [],
+                    Roles = a.Roles?
+                        .Select(r => new HoldingRoleResponse
+                        {
+                            Code = r.Code,
+                            Species = r.Species ?? [],
+                        })
+                        .ToList() ?? [],
+                })
+                .ToList() ?? [],
         };
     }
 
-    internal static CattleSummary ToCattleSummary(CattleApiCattle cattle)
+    private static HoldingResponse ToHoldingSummary(CattleApiHolding holding)
+    {
+        ArgumentNullException.ThrowIfNull(holding);
+
+        return new HoldingResponse
+        {
+            Cph = holding.Cph ?? string.Empty,
+            Name = holding.Name,
+            HoldingType = holding.HoldingType,
+            Address = holding.Address ?? [],
+            KeeperName = holding.KeeperName,
+        };
+    }
+
+    private static PaginatedResponse<HoldingResponse> ToPaginatedHoldings(CattleApiPaginatedResponse<CattleApiHolding> response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        return new PaginatedResponse<HoldingResponse>
+        {
+            Count = response.Count,
+            TotalCount = response.TotalCount,
+            Items = (response.Items ?? []).Select(ToHoldingSummary).ToList(),
+            Page = response.Page,
+            PageSize = response.PageSize,
+            TotalPages = response.TotalPages,
+            HasNextPage = response.HasNextPage,
+            HasPreviousPage = response.HasPreviousPage,
+        };
+    }
+
+    private static CattleSummary ToCattleSummary(CattleApiCattle cattle)
     {
         ArgumentNullException.ThrowIfNull(cattle);
 

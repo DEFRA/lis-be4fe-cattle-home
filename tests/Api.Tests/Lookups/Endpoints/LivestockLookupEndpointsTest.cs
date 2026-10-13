@@ -99,7 +99,7 @@ public class LivestockLookupEndpointsTest
         var client = factory.CreateAuthenticatedClient();
 
         var response = await client.GetAsync("/api/cphs/12/345/6789", TestContext.Current.CancellationToken);
-        var payload = await response.Content.ReadFromJsonAsync<CachedLookupResponse<HoldingDetails>>(
+        var payload = await response.Content.ReadFromJsonAsync<CachedLookupResponse<HoldingDetailedResponse>>(
             SerializerOptions,
             TestContext.Current.CancellationToken);
 
@@ -108,8 +108,14 @@ public class LivestockLookupEndpointsTest
         payload.Source.ShouldBe("cattle-api");
         payload.Data.Cph.ShouldBe("12/345/6789");
         payload.Data.Name.ShouldBe("Test Farm");
-        payload.Data.RegisteredKeeper.ShouldBe("Test Keeper");
-        payload.Data.HerdMarks.ShouldBe(["UK 123456"]);
+        payload.Data.KeeperName.ShouldBe("Test Keeper");
+        var mark = payload.Data.HerdMarks.ShouldHaveSingleItem();
+        mark.Mark.ShouldBe("UK 123456");
+        mark.Species.ShouldBe(["Cattle"]);
+        var assoc = payload.Data.Associations.ShouldHaveSingleItem();
+        assoc.CustomerNumber.ShouldBe("CN123");
+        assoc.Name.ShouldBe("Test Keeper");
+        assoc.Roles.ShouldHaveSingleItem().Code.ShouldBe("KEEPER");
     }
 
     [Fact]
@@ -321,6 +327,62 @@ public class LivestockLookupEndpointsTest
         factory.HoldingClient.LastCreateUserRequest.ShouldBeNull();
     }
 
+    [Fact]
+    public async Task SearchHoldingsShouldReturnPaginatedHoldingsWithSearchPagingAndSortingParameters()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateAuthenticatedClient();
+
+        var response = await client.GetAsync("/api/cphs?search=oakfield&page=2&pageSize=20&sort=name&order=desc", TestContext.Current.CancellationToken);
+        var payload = await response.Content.ReadFromJsonAsync<PaginatedResponse<HoldingResponse>>(
+            SerializerOptions,
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        payload.ShouldNotBeNull();
+        payload.Count.ShouldBe(1);
+        payload.TotalCount.ShouldBe(1);
+        payload.Page.ShouldBe(2);
+        payload.PageSize.ShouldBe(20);
+        var holding = payload.Items.ShouldHaveSingleItem();
+        holding.Cph.ShouldBe("22/001/0001");
+        holding.Name.ShouldBe("Oakfield Farm");
+        holding.HoldingType.ShouldBe("AH");
+        holding.KeeperName.ShouldBe("Oakfield Farmer");
+
+        factory.HoldingClient.LastHoldingQuery.ShouldNotBeNull();
+        factory.HoldingClient.LastHoldingQuery.Search.ShouldBe("oakfield");
+        factory.HoldingClient.LastHoldingQuery.Page.ShouldBe(2);
+        factory.HoldingClient.LastHoldingQuery.PageSize.ShouldBe(20);
+        factory.HoldingClient.LastHoldingQuery.Sort.ShouldBe("name");
+        factory.HoldingClient.LastHoldingQuery.Order.ShouldBe("desc");
+    }
+
+    [Fact]
+    public async Task SearchHoldingsShouldWriteResponseInSnakeCase()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateAuthenticatedClient();
+
+        var body = await client.GetStringAsync("/api/cphs?search=oakfield", TestContext.Current.CancellationToken);
+
+        body.ShouldContain("\"total_count\":1");
+        body.ShouldContain("\"has_next_page\":false");
+        body.ShouldContain("\"holding_type\":\"AH\"");
+        body.ShouldContain("\"keeper_name\":\"Oakfield Farmer\"");
+    }
+
+    [Fact]
+    public async Task SearchHoldingsShouldReturnProblemDetails400WhenRejectedByCattleApi()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateAuthenticatedClient();
+
+        var response = await client.GetAsync("/api/cphs?search=invalid", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
     private static StringContent ClaimsBody(string sub) => new(
         $$"""{"sub":"{{sub}}","email":"contact@test.com","given_name":"FirstName","family_name":"LastName"}""",
         System.Text.Encoding.UTF8,
@@ -368,6 +430,8 @@ public class LivestockLookupEndpointsTest
 
         public CattleSearchQuery? LastQuery { get; private set; }
 
+        public HoldingSearchQuery? LastHoldingQuery { get; private set; }
+
         public string? LastUserId { get; private set; }
 
         public int UserDetailCallCount { get; private set; }
@@ -397,6 +461,38 @@ public class LivestockLookupEndpointsTest
             return GetUserDetailsAsync(sub, cancellationToken);
         }
 
+        public Task<PaginatedResponse<HoldingResponse>> SearchHoldingsAsync(HoldingSearchQuery query, CancellationToken cancellationToken = default)
+        {
+            LastHoldingQuery = query;
+
+            if (query.Search == "invalid")
+            {
+                throw new ArgumentException("The cattle API rejected the holdings search query.", nameof(query));
+            }
+
+            return Task.FromResult(new PaginatedResponse<HoldingResponse>
+            {
+                Count = 1,
+                TotalCount = 1,
+                Page = query.Page ?? 1,
+                PageSize = query.PageSize ?? 10,
+                TotalPages = 1,
+                HasNextPage = false,
+                HasPreviousPage = false,
+                Items =
+                [
+                    new HoldingResponse
+                    {
+                        Cph = "22/001/0001",
+                        Name = "Oakfield Farm",
+                        HoldingType = "AH",
+                        Address = ["1 Farm Lane", "Shrewsbury", "SY1 1AA"],
+                        KeeperName = "Oakfield Farmer",
+                    },
+                ],
+            });
+        }
+
         public Task<UserDetails> GetUserDetailsAsync(string userId, CancellationToken cancellationToken = default)
         {
             LastUserId = userId;
@@ -423,7 +519,7 @@ public class LivestockLookupEndpointsTest
             });
         }
 
-        public Task<HoldingDetails> GetHoldingDetailsAsync(string cph, CancellationToken cancellationToken = default)
+        public Task<HoldingDetailedResponse> GetHoldingDetailsAsync(string cph, CancellationToken cancellationToken = default)
         {
             LastCph = cph;
 
@@ -432,15 +528,24 @@ public class LivestockLookupEndpointsTest
                 throw new HoldingNotFoundException(cph);
             }
 
-            return Task.FromResult(new HoldingDetails
+            return Task.FromResult(new HoldingDetailedResponse
             {
                 Cph = cph,
                 Name = "Test Farm",
                 HoldingType = "AH",
                 Address = ["1 Farm Lane", "Shrewsbury", "SY1 1AA"],
-                RegisteredKeeper = "Test Keeper",
-                HerdMarks = ["UK 123456"],
+                KeeperName = "Test Keeper",
+                HerdMarks = [new HoldingMarkResponse { Mark = "UK 123456", Species = ["Cattle"] }],
                 AllowedSpecies = ["Cattle"],
+                Associations =
+                [
+                    new HoldingAssociationResponse
+                    {
+                        CustomerNumber = "CN123",
+                        Name = "Test Keeper",
+                        Roles = [new HoldingRoleResponse { Code = "KEEPER", Species = ["Cattle"] }],
+                    },
+                ],
             });
         }
 

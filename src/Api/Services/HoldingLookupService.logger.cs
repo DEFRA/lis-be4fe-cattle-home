@@ -8,4 +8,7 @@ public partial class HoldingLookupService
 {
     [LoggerMessage(LogLevel.Information, "Retrieved holding details for CPH. Cph: {Cph}")]
     partial void LogRetrievedHoldingDetailsCphCph(string cph);
+
+    [LoggerMessage(LogLevel.Information, "Searched holdings from cattle API.")]
+    partial void LogSearchedHoldings();
 }

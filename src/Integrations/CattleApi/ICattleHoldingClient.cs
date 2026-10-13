@@ -14,7 +14,11 @@ public interface ICattleHoldingClient
     /// <exception cref="ArgumentException">The CPH is not three segments.</exception>
     /// <exception cref="HoldingNotFoundException">The cattle API does not know the holding.</exception>
     /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
-    Task<HoldingDetails> GetHoldingDetailsAsync(string cph, CancellationToken cancellationToken = default);
+    Task<HoldingDetailedResponse> GetHoldingDetailsAsync(string cph, CancellationToken cancellationToken = default);
+
+    /// <exception cref="ArgumentException">The search query was rejected by the cattle API.</exception>
+    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
+    Task<PaginatedResponse<HoldingResponse>> SearchHoldingsAsync(HoldingSearchQuery query, CancellationToken cancellationToken = default);
 
     /// <exception cref="ArgumentException">The CPH is not three segments.</exception>
     /// <exception cref="HoldingNotFoundException">The cattle API does not know the holding.</exception>

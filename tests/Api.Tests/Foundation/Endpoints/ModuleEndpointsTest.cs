@@ -43,6 +43,10 @@ public class ModuleEndpointsTest : IClassFixture<WebApplicationFactory<Program>>
 
         document.RootElement.GetProperty("info").GetProperty("title").GetString().ShouldBe("Cattle Home API");
         document.RootElement.GetProperty("paths").TryGetProperty("/api/users/{userId}/cphs", out _).ShouldBeTrue();
+        document.RootElement.GetProperty("paths").TryGetProperty("/api/cphs", out _).ShouldBeTrue();
+
+        var searchHoldings = document.RootElement.GetProperty("paths").GetProperty("/api/cphs").GetProperty("get");
+        searchHoldings.GetProperty("operationId").GetString().ShouldBe("SearchHoldings");
 
         var userDetails = document.RootElement.GetProperty("paths").GetProperty("/api/users/{userId}").GetProperty("get");
         userDetails.GetProperty("operationId").GetString().ShouldBe("GetUserDetails");

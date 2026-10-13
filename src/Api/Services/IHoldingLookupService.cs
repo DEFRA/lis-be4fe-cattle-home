@@ -8,5 +8,7 @@ using Defra.Lis.Be4Fe.Models.Lookups.Models;
 
 public interface IHoldingLookupService
 {
-    Task<CachedLookupResponse<HoldingDetails>> GetHoldingDetailsAsync(string cph, CancellationToken cancellationToken = default);
+    Task<CachedLookupResponse<HoldingDetailedResponse>> GetHoldingDetailsAsync(string cph, CancellationToken cancellationToken = default);
+
+    Task<PaginatedResponse<HoldingResponse>> SearchHoldingsAsync(HoldingSearchQuery query, CancellationToken cancellationToken = default);
 }
