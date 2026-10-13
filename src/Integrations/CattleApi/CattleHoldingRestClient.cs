@@ -76,7 +76,7 @@ public sealed partial class CattleHoldingRestClient(
 
             var result = await strategy.ExecuteAndTransform<CattleApiPaginatedResponse<CattleApiHolding>, PaginatedResponse<HoldingResponse>>(ToPaginatedHoldings);
 
-            LogRetrievedHoldings(result.Items.Count, result.TotalCount, !query.IsEmpty);
+            LogRetrievedHoldings(result.Items.Count, result.TotalCount, result.Page, result.TotalPages, !query.IsEmpty);
 
             return result;
         }

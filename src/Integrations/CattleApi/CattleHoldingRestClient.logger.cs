@@ -11,8 +11,8 @@ public partial class CattleHoldingRestClient
     [LoggerMessage(LogLevel.Information, "Retrieved holding details from the cattle API. Cph: {Cph}")]
     partial void LogRetrievedHoldingDetails(string cph);
 
-    [LoggerMessage(LogLevel.Information, "Retrieved {Count} of {TotalCount} holdings from the cattle API. Filtered: {Filtered}")]
-    partial void LogRetrievedHoldings(int count, int totalCount, bool filtered);
+    [LoggerMessage(LogLevel.Information, "Retrieved {Count} of {TotalCount} holdings from the cattle API. Page: {Page}, TotalPages: {TotalPages}, Filtered: {Filtered}")]
+    partial void LogRetrievedHoldings(int count, int totalCount, int page, int totalPages, bool filtered);
 
     [LoggerMessage(LogLevel.Information, "Retrieved {Count} cattle from the cattle API. Cph: {Cph}, Filtered: {Filtered}")]
     partial void LogRetrievedCattleForHolding(int count, string cph, bool filtered);
