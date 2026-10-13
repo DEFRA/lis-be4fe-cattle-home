@@ -33,6 +33,12 @@ public sealed class CattleDetails
 
     public DateOnly? DateOnCph { get; init; }
 
+    public CattleLocation? CurrentLocation { get; init; }
+
+    public CattleLocation? RegisteredLocation { get; init; }
+
+    public CattleLocation? DeathLocation { get; init; }
+
     /// <summary>
     /// Gets the animal's state, "Alive" or "Dead".
     /// </summary>

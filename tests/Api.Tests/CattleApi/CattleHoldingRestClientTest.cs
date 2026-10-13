@@ -58,7 +58,10 @@ public sealed class CattleHoldingRestClientTest
          "dateRegistered":"2023-02-05","dateOnCph":"2023-02-01","breed":"Aberdeen Angus",
          "breedCode":"AA","breedName":"Aberdeen Angus","state":"Alive","restrictionStatus":"None",
          "damType":"genetic","geneticDamEarTag":"UK200000000098","surrogateDamEarTag":null,
-         "sireEarTag":"UK200000000099","sireName":null}
+         "sireEarTag":"UK200000000099","sireName":null,
+         "currentLocation":{"identifier":"22/001/0001","subIdentifier":"sub1","fullIdentifier":"22/001/0001/sub1","name":"Oakfield Farm","premisesType":"Agricultural"},
+         "registeredLocation":{"identifier":"22/002/0002","subIdentifier":null,"fullIdentifier":"22/002/0002","name":"Birth Farm","premisesType":"Agricultural"},
+         "deathLocation":null}
         """;
 
     private const string TestUser = """
@@ -342,6 +345,19 @@ public sealed class CattleHoldingRestClientTest
         details.DateOfBirth.ShouldBe(new DateOnly(2023, 2, 1));
         details.DateRegistered.ShouldBe(new DateOnly(2023, 2, 5));
         details.DateOnCph.ShouldBe(new DateOnly(2023, 2, 1));
+        details.CurrentLocation.ShouldNotBeNull();
+        details.CurrentLocation.Identifier.ShouldBe("22/001/0001");
+        details.CurrentLocation.SubIdentifier.ShouldBe("sub1");
+        details.CurrentLocation.FullIdentifier.ShouldBe("22/001/0001/sub1");
+        details.CurrentLocation.Name.ShouldBe("Oakfield Farm");
+        details.CurrentLocation.PremisesType.ShouldBe("Agricultural");
+        details.RegisteredLocation.ShouldNotBeNull();
+        details.RegisteredLocation.Identifier.ShouldBe("22/002/0002");
+        details.RegisteredLocation.SubIdentifier.ShouldBeNull();
+        details.RegisteredLocation.FullIdentifier.ShouldBe("22/002/0002");
+        details.RegisteredLocation.Name.ShouldBe("Birth Farm");
+        details.RegisteredLocation.PremisesType.ShouldBe("Agricultural");
+        details.DeathLocation.ShouldBeNull();
 
         // The UI resolves the breed name from the code, so Breed carries the code.
         details.Breed.ShouldBe("AA");
