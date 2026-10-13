@@ -5,6 +5,7 @@
 namespace Defra.Lis.Be4Fe.Api.Tests.CattleApi;
 
 using System.Net;
+using System.Text.Json;
 using Defra.Lis.Be4Fe.CattleApi;
 using Defra.Lis.Be4Fe.Models.Lookups.Models;
 using Defra.Livestock.Sdk.Api.Strategies.Abstractions.Exceptions;
@@ -423,6 +424,89 @@ public sealed class CattleHoldingRestClientTest
         exception.Message.ShouldContain("CattleApi:BaseUrl");
         handler.Requests.ShouldBeEmpty();
     }
+
+    [Fact]
+    public async Task CreateUserAsync_PostsTheClaimsInSnakeCaseWithTheApiKey()
+    {
+        handler.RespondWith(HttpStatusCode.OK, TestUser);
+        var client = CreateClient(apiKey: "test-key");
+
+        await client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken);
+
+        var request = handler.Requests.ShouldHaveSingleItem();
+        request.Method.ShouldBe(HttpMethod.Post);
+        request.RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/users");
+        request.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldHaveSingleItem().ShouldBe("test-key");
+        using var body = JsonDocument.Parse(handler.RequestBodies.ShouldHaveSingleItem()!);
+        body.RootElement.GetProperty("sub").GetString().ShouldBe("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
+        body.RootElement.GetProperty("email").GetString().ShouldBe("test.keeper@example.com");
+        body.RootElement.GetProperty("given_name").GetString().ShouldBe("Test");
+        body.RootElement.GetProperty("family_name").GetString().ShouldBe("Keeper");
+        body.RootElement.EnumerateObject().Count().ShouldBe(4);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_MapsTheReturnedUser()
+    {
+        handler.RespondWith(HttpStatusCode.OK, TestUser);
+        var client = CreateClient();
+
+        var user = await client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken);
+
+        user.Subject.ShouldBe("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
+        user.DisplayName.ShouldBe("Test Keeper");
+        user.Cphs.Select(cph => cph.Cph).ShouldBe(["22/001/0001", "22/003/0003"]);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_ThrowsArgumentException_WhenTheCattleApiRejectsTheClaims()
+    {
+        handler.RespondWith(HttpStatusCode.BadRequest, """{"title":"Bad Request","status":400}""");
+        var client = CreateClient();
+
+        await Should.ThrowAsync<ArgumentException>(() => client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_ThrowsUserConflict_WhenTheCattleApiReturns409()
+    {
+        handler.RespondWith(HttpStatusCode.Conflict, """{"title":"Conflict","status":409}""");
+        var client = CreateClient();
+
+        var exception = await Should.ThrowAsync<UserConflictException>(() => client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken));
+
+        exception.UserId.ShouldBe("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_ThrowsServiceUnavailable_WhenTheCattleApiReturns503()
+    {
+        handler.RespondWith(HttpStatusCode.ServiceUnavailable, """{"title":"Service Unavailable","status":503}""");
+        var client = CreateClient();
+
+        await Should.ThrowAsync<ServiceUnavailableException>(() => client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    public async Task CreateUserAsync_DoesNotTranslateAuthOrServerFailuresIntoClientErrors(HttpStatusCode statusCode)
+    {
+        handler.RespondWith(statusCode, $$"""{"status":{{(int)statusCode}}}""");
+        var client = CreateClient();
+
+        var exception = await Should.ThrowAsync<RestResponseException>(() => client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken));
+
+        exception.ShouldNotBeNull();
+    }
+
+    private static CreateUserRequest TestClaims() => new()
+    {
+        Sub = "0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51",
+        Email = "test.keeper@example.com",
+        GivenName = "Test",
+        FamilyName = "Keeper",
+    };
 
     private CattleHoldingRestClient CreateClient(string baseUrl = "http://cattle-api.test/", string? apiKey = "key")
     {

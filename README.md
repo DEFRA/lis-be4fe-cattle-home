@@ -96,6 +96,8 @@ docker compose up --build
 - `GET /openapi/v1.json` returns the OpenAPI v1 specification
 - `GET /swagger/index.html` opens the interactive Swagger UI
 - `GET /api/users/{userId}/cphs` returns CPHs for a user, using Mongo cache first
+- `GET /api/users/{userId}` returns a user's details and associated CPHs from the cattle API (no caching); 404 when the user is unknown
+- `POST /api/users` creates or refreshes a user account in KRDS through the cattle API from the claims `sub`, `email`, `given_name` and `family_name`, returning the user's details (no caching). Always 200; 400 for a missing or invalid claim, 409 when the email belongs to another account, 503 while KRDS is temporarily unavailable. See `tests/Endpoints/users/Users.http`
 - `GET /api/cphs/{county}/{parish}/{holding}` returns holding details from the cattle API
 - `GET /api/cphs/{county}/{parish}/{holding}/cattle?eartag=&breed=&sex=` returns live cattle on a CPH from the cattle API, optionally filtered
 - `GET /api/cattle/{cattleId}` returns cattle details from the cattle API, using Mongo cache first; 404 when the animal is unknown

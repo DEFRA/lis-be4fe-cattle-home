@@ -30,4 +30,15 @@ public interface ICattleHoldingClient
     /// <exception cref="UserNotFoundException">The cattle API does not know the user.</exception>
     /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
     Task<UserDetails> GetUserDetailsAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates (or refreshes) a user account through the cattle API from the identity provider claims.
+    /// </summary>
+    /// <param name="request">The identity provider claims (sub, email, given_name, family_name).</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <exception cref="ArgumentException">The claims are missing, or the cattle API rejected them.</exception>
+    /// <exception cref="UserConflictException">The email belongs to a different account.</exception>
+    /// <exception cref="ServiceUnavailableException">The cattle API or KRDS is temporarily unavailable.</exception>
+    /// <returns>The user's details and associated CPHs.</returns>
+    Task<UserDetails> CreateUserAsync(CreateUserRequest request, CancellationToken cancellationToken = default);
 }

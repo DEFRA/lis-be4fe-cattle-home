@@ -1,0 +1,51 @@
+# Local defaults (Properties/launchSettings.json); the cattle API and lis-fake-service must be running too.
+@host = http://localhost:8085
+@apiKey = local-dev-cattle-home-api-key
+@subject = 0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51
+
+### Create or refresh a user account (lis-fake-service keeps accounts in memory, so run this before the GET)
+POST {{host}}/api/users
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "sub": "{{subject}}",
+  "email": "contact@test.com",
+  "given_name": "FirstName",
+  "family_name": "LastName"
+}
+
+### Create a user account (missing email) - 400
+POST {{host}}/api/users
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "sub": "{{subject}}",
+  "given_name": "FirstName",
+  "family_name": "LastName"
+}
+
+### Create a user account (email already bound to another subject) - 409
+POST {{host}}/api/users
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "sub": "{{$uuid}}",
+  "email": "contact@test.com",
+  "given_name": "FirstName",
+  "family_name": "LastName"
+}
+
+### Get user details
+GET {{host}}/api/users/{{subject}}
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json

@@ -55,6 +55,19 @@ public sealed partial class UserLookupService(
         };
     }
 
+    public async Task<CachedLookupResponse<UserDetails>> CreateUserAsync(CreateUserRequest request, CancellationToken cancellationToken = default)
+    {
+        // Not cached: the account is refreshed in KRDS on every call.
+        var details = await cattleHoldingClient.CreateUserAsync(request, cancellationToken);
+
+        return new CachedLookupResponse<UserDetails>
+        {
+            Source = LookupSources.CattleApi,
+            CachedUntilUtc = null,
+            Data = details,
+        };
+    }
+
     private static string Normalise(string value)
     {
         return value.Trim().ToUpperInvariant();

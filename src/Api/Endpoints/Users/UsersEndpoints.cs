@@ -31,6 +31,16 @@ public static class UsersEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        group.MapPost(RouteNames.Users, CreateUser)
+            .WithName(OpenApiMetadata.CreateUser.Name)
+            .WithSummary(OpenApiMetadata.CreateUser.Summary)
+            .WithDescription(OpenApiMetadata.CreateUser.Description)
+            .Accepts<CreateUserRequest>("application/json")
+            .Produces<CachedLookupResponse<UserDetails>>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+
         return app;
     }
 
@@ -49,6 +59,21 @@ public static class UsersEndpoints
         CancellationToken cancellationToken)
     {
         var response = await userLookupService.GetUserDetailsAsync(userId, cancellationToken);
+        return TypedResults.Ok(response);
+    }
+
+    private static async Task<IResult> CreateUser(
+        CreateUserRequest? request,
+        IUserLookupService userLookupService,
+        CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            throw new ArgumentException("A request body is required.", nameof(request));
+        }
+
+        // The cattle API answers 200 whether the account was created or refreshed (LREG-660).
+        var response = await userLookupService.CreateUserAsync(request, cancellationToken);
         return TypedResults.Ok(response);
     }
 }
