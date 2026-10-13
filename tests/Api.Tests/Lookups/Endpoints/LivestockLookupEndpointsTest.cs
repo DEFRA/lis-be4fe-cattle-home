@@ -153,7 +153,28 @@ public class LivestockLookupEndpointsTest
         payload.Data.DamType.ShouldBe("genetic");
         payload.Data.GeneticDamTag.ShouldBe("UK200000000098");
         payload.Data.Cph.ShouldBeNull();
+        payload.Data.CurrentLocation.ShouldNotBeNull();
+        payload.Data.CurrentLocation.Identifier.ShouldBe("22/001/0001");
+        payload.Data.CurrentLocation.Name.ShouldBe("Oakfield Farm");
+        payload.Data.RegisteredLocation.ShouldNotBeNull();
+        payload.Data.RegisteredLocation.Identifier.ShouldBe("22/002/0002");
+        payload.Data.RegisteredLocation.Name.ShouldBe("Birth Farm");
+        payload.Data.DeathLocation.ShouldBeNull();
         factory.HoldingClient.LastEarTag.ShouldBe("UK200000000001");
+    }
+
+    [Fact]
+    public async Task GetCattleDetailsShouldWriteTheResponseInSnakeCase()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateAuthenticatedClient();
+
+        var body = await client.GetStringAsync("/api/cattle/uk200000000001", TestContext.Current.CancellationToken);
+
+        body.ShouldContain("\"cattle_id\":\"uk200000000001\"");
+        body.ShouldContain("\"current_location\":{");
+        body.ShouldContain("\"full_identifier\":\"22/001/0001/sub1\"");
+        body.ShouldContain("\"premises_type\":\"Agricultural\"");
     }
 
     [Fact]
@@ -583,6 +604,23 @@ public class LivestockLookupEndpointsTest
                 DateOfBirth = new DateOnly(2021, 2, 3),
                 DateRegistered = new DateOnly(2021, 2, 7),
                 DateOnCph = new DateOnly(2021, 2, 3),
+                CurrentLocation = new CattleLocation
+                {
+                    Identifier = "22/001/0001",
+                    SubIdentifier = "sub1",
+                    FullIdentifier = "22/001/0001/sub1",
+                    Name = "Oakfield Farm",
+                    PremisesType = "Agricultural",
+                },
+                RegisteredLocation = new CattleLocation
+                {
+                    Identifier = "22/002/0002",
+                    SubIdentifier = null,
+                    FullIdentifier = "22/002/0002",
+                    Name = "Birth Farm",
+                    PremisesType = "Agricultural",
+                },
+                DeathLocation = null,
                 State = "Alive",
                 RestrictionStatus = "None",
                 DamType = "genetic",

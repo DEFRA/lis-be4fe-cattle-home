@@ -248,6 +248,9 @@ public sealed partial class CattleHoldingRestClient(
             DateOfBirth = cattle.DateBirth,
             DateRegistered = cattle.DateRegistered,
             DateOnCph = cattle.DateOnCph,
+            CurrentLocation = ToCattleLocation(cattle.CurrentLocation),
+            RegisteredLocation = ToCattleLocation(cattle.RegisteredLocation),
+            DeathLocation = ToCattleLocation(cattle.DeathLocation),
             State = cattle.State,
             RestrictionStatus = cattle.RestrictionStatus,
             DamType = cattle.DamType,
@@ -255,6 +258,23 @@ public sealed partial class CattleHoldingRestClient(
             SurrogateTag = cattle.SurrogateDamEarTag,
             SireTag = cattle.SireEarTag,
             SireName = cattle.SireName,
+        };
+    }
+
+    private static CattleLocation? ToCattleLocation(CattleApiCattleLocation? location)
+    {
+        if (location is null)
+        {
+            return null;
+        }
+
+        return new CattleLocation
+        {
+            Identifier = location.Identifier,
+            SubIdentifier = location.SubIdentifier,
+            FullIdentifier = location.FullIdentifier,
+            Name = location.Name,
+            PremisesType = location.PremisesType,
         };
     }
 
