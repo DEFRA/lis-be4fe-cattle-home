@@ -22,8 +22,15 @@ public static class CphsEndpoints
             .WithName(OpenApiMetadata.GetHoldingDetails.Name)
             .WithSummary(OpenApiMetadata.GetHoldingDetails.Summary)
             .WithDescription(OpenApiMetadata.GetHoldingDetails.Description)
-            .Produces<CachedLookupResponse<HoldingDetails>>(StatusCodes.Status200OK)
+            .Produces<CachedLookupResponse<HoldingDetailedResponse>>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        group.MapGet(RouteNames.CountyParishHoldings, SearchHoldings)
+            .WithName(OpenApiMetadata.SearchHoldings.Name)
+            .WithSummary(OpenApiMetadata.SearchHoldings.Summary)
+            .WithDescription(OpenApiMetadata.SearchHoldings.Description)
+            .Produces<PaginatedResponse<HoldingResponse>>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest);
 
         group.MapGet(RouteNames.CountyParishHoldings + "/{county}/{parish}/{holding}/cattle", GetCattleForCph)
             .WithName(OpenApiMetadata.GetCattleForCph.Name)
@@ -43,6 +50,15 @@ public static class CphsEndpoints
         CancellationToken cancellationToken)
     {
         var response = await holdingLookupService.GetHoldingDetailsAsync($"{county}/{parish}/{holding}", cancellationToken);
+        return TypedResults.Ok(response);
+    }
+
+    private static async Task<IResult> SearchHoldings(
+        [AsParameters] HoldingSearchQuery query,
+        IHoldingLookupService holdingLookupService,
+        CancellationToken cancellationToken)
+    {
+        var response = await holdingLookupService.SearchHoldingsAsync(query, cancellationToken);
         return TypedResults.Ok(response);
     }
 

@@ -15,17 +15,25 @@ public sealed partial class HoldingLookupService(
     ILogger<HoldingLookupService> logger)
     : IHoldingLookupService
 {
-    public async Task<CachedLookupResponse<HoldingDetails>> GetHoldingDetailsAsync(string cph, CancellationToken cancellationToken = default)
+    public async Task<CachedLookupResponse<HoldingDetailedResponse>> GetHoldingDetailsAsync(string cph, CancellationToken cancellationToken = default)
     {
         var normalisedCph = cph.Trim().ToUpperInvariant();
         var details = await cattleHoldingClient.GetHoldingDetailsAsync(normalisedCph, cancellationToken);
         LogRetrievedHoldingDetailsCphCph(normalisedCph);
 
-        return new CachedLookupResponse<HoldingDetails>
+        return new CachedLookupResponse<HoldingDetailedResponse>
         {
             Source = LookupSources.CattleApi,
             CachedUntilUtc = null,
             Data = details,
         };
+    }
+
+    public async Task<PaginatedResponse<HoldingResponse>> SearchHoldingsAsync(HoldingSearchQuery query, CancellationToken cancellationToken = default)
+    {
+        var result = await cattleHoldingClient.SearchHoldingsAsync(query, cancellationToken);
+        LogSearchedHoldings();
+
+        return result;
     }
 }
