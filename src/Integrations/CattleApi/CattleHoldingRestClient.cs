@@ -66,15 +66,14 @@ public sealed partial class CattleHoldingRestClient(
 
         try
         {
-            var strategy = BuildStrategy("Search holdings", cancellationToken)
+            var result = await BuildStrategy("Search holdings", cancellationToken)
                 .WithResourceUrl($"{ApiVersion}/holdings")
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Search), "Search", query.Search?.Trim() ?? string.Empty)
                 .WithQueryParameter(() => query.Page.HasValue, "Page", query.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
                 .WithQueryParameter(() => query.PageSize.HasValue, "PageSize", query.PageSize?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Sort), "Sort", query.Sort?.Trim() ?? string.Empty)
-                .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Order), "Order", query.Order?.Trim() ?? string.Empty);
-
-            var result = await strategy.ExecuteAndTransform<CattleApiPaginatedResponse<CattleApiHolding>, PaginatedResponse<HoldingResponse>>(ToPaginatedHoldings);
+                .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Order), "Order", query.Order?.Trim() ?? string.Empty)
+                .ExecuteAndTransform<CattleApiPaginatedResponse<CattleApiHolding>, PaginatedResponse<HoldingResponse>>(ToPaginatedHoldings);
 
             LogRetrievedHoldings(result.Items.Count, result.TotalCount, result.Page, result.TotalPages, !query.IsEmpty);
 
