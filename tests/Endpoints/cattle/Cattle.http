@@ -1,0 +1,17 @@
+# Cattle details are cached in Mongo; clear the cache first when checking the upstream call.
+
+### Get cattle details
+GET {{host}}/api/cattle/{{cattleId}}
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_200_OK.js
+
+### Get cattle details (unknown ear tag)
+GET {{host}}/api/cattle/UK999999999999
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_404.js

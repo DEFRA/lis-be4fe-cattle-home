@@ -1,0 +1,35 @@
+### Get holding details (no x-api-key)
+GET {{host}}/api/cphs/{{cph}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_401_unauthorized.js
+
+### Get holding details (wrong x-api-key)
+GET {{host}}/api/cphs/{{cph}}
+x-api-key: not-a-valid-key
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_401_unauthorized.js
+
+### Get holding details (no x-cdp-request-id)
+GET {{host}}/api/cphs/{{cph}}
+x-api-key: {{apiKey}}
+Accept: application/json
+
+> ../asserts/Should_be_400_missing_header.js
+
+### Get user details (no x-api-key)
+GET {{host}}/api/users/{{subject}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_401_unauthorized.js
+
+### Get cattle details (no x-cdp-request-id)
+GET {{host}}/api/cattle/{{cattleId}}
+x-api-key: {{apiKey}}
+Accept: application/json
+
+> ../asserts/Should_be_400_missing_header.js
