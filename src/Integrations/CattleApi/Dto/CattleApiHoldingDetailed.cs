@@ -13,6 +13,9 @@ public sealed record CattleApiHoldingDetailed(
     string? HoldingType,
     IReadOnlyList<string>? Address,
     string? KeeperName,
+    DateTimeOffset? StartDate,
+    DateTimeOffset? EndDate,
+    bool? Active,
     IReadOnlyList<CattleApiHoldingMark>? HerdMarks,
     IReadOnlyList<string>? AllowedSpecies,
     IReadOnlyList<CattleApiHoldingAssociation>? Associations);

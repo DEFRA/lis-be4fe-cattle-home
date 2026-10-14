@@ -15,4 +15,10 @@ public class HoldingResponse
     public IReadOnlyCollection<string> Address { get; init; } = [];
 
     public string? KeeperName { get; init; }
+
+    public DateTimeOffset? StartDate { get; init; }
+
+    public DateTimeOffset? EndDate { get; init; }
+
+    public bool? Active { get; init; }
 }

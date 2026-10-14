@@ -12,4 +12,7 @@ public record CattleApiHolding(
     string? Name,
     string? HoldingType,
     IReadOnlyList<string>? Address,
-    string? KeeperName);
+    string? KeeperName,
+    DateTimeOffset? StartDate,
+    DateTimeOffset? EndDate,
+    bool? Active);
