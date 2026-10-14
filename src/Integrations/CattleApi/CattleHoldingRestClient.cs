@@ -288,6 +288,9 @@ public sealed partial class CattleHoldingRestClient(
             Name = holdingDetailed.Name,
             HoldingType = holdingDetailed.HoldingType,
             KeeperName = holdingDetailed.KeeperName,
+            StartDate = holdingDetailed.StartDate,
+            EndDate = holdingDetailed.EndDate,
+            Active = holdingDetailed.Active,
             Address = holdingDetailed.Address ?? [],
             HerdMarks = holdingDetailed.HerdMarks?
                 .Select(m => new HoldingMarkResponse
@@ -335,6 +338,9 @@ public sealed partial class CattleHoldingRestClient(
             HoldingType = holding.HoldingType,
             Address = holding.Address ?? [],
             KeeperName = holding.KeeperName,
+            StartDate = holding.StartDate,
+            EndDate = holding.EndDate,
+            Active = holding.Active,
         };
     }
 

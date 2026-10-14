@@ -20,6 +20,9 @@ public sealed class CattleHoldingRestClientTest
         {"cph":"22/001/0001","name":"Oakfield Farm","holdingType":"AH",
          "address":["Oakfield Farm","Church Lane","Shrewsbury","Shropshire","SY4 1AB","England"],
          "keeperName":"Oakfield Farmer",
+         "startDate":"2020-01-01T00:00:00+00:00",
+         "endDate":null,
+         "active":true,
          "herdMarks":[{"mark":"UK 324537","startDate":"2020-01-01T00:00:00+00:00","endDate":null,"species":["Cattle"]}],
          "allowedSpecies":["Cattle"],
          "associations":[{"customerNumber":"CN123","title":"Mr","firstName":"Oakfield","lastName":"Farmer","name":"Oakfield Farmer","partyType":"Individual","email":"farmer@example.com","mobile":"07123456789","telephone":"0123456789","address":["Oakfield Farm"],"roles":[{"code":"KEEPER","species":["Cattle"]}]}]}
@@ -40,7 +43,10 @@ public sealed class CattleHoldingRestClientTest
               "name": "Oakfield Farm",
               "holdingType": "AH",
               "address": ["Oakfield Farm", "Church Lane", "Shrewsbury", "Shropshire", "SY4 1AB", "England"],
-              "keeperName": "Oakfield Farmer"
+              "keeperName": "Oakfield Farmer",
+              "startDate": "2020-01-01T00:00:00+00:00",
+              "endDate": null,
+              "active": true
             }
           ]
         }
@@ -131,6 +137,9 @@ public sealed class CattleHoldingRestClientTest
         details.Name.ShouldBe("Oakfield Farm");
         details.HoldingType.ShouldBe("AH");
         details.KeeperName.ShouldBe("Oakfield Farmer");
+        details.StartDate.ShouldBe(DateTimeOffset.Parse("2020-01-01T00:00:00+00:00"));
+        details.EndDate.ShouldBeNull();
+        details.Active.ShouldBe(true);
         details.Address.ShouldBe(["Oakfield Farm", "Church Lane", "Shrewsbury", "Shropshire", "SY4 1AB", "England"]);
         var mark = details.HerdMarks.ShouldHaveSingleItem();
         mark.Mark.ShouldBe("UK 324537");
@@ -221,6 +230,9 @@ public sealed class CattleHoldingRestClientTest
         holding.HoldingType.ShouldBe("AH");
         holding.Address.ShouldBe(["Oakfield Farm", "Church Lane", "Shrewsbury", "Shropshire", "SY4 1AB", "England"]);
         holding.KeeperName.ShouldBe("Oakfield Farmer");
+        holding.StartDate.ShouldBe(DateTimeOffset.Parse("2020-01-01T00:00:00+00:00"));
+        holding.EndDate.ShouldBeNull();
+        holding.Active.ShouldBe(true);
     }
 
     [Fact]

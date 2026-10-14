@@ -109,6 +109,9 @@ public class LivestockLookupEndpointsTest
         payload.Data.Cph.ShouldBe("12/345/6789");
         payload.Data.Name.ShouldBe("Test Farm");
         payload.Data.KeeperName.ShouldBe("Test Keeper");
+        payload.Data.StartDate.ShouldBe(DateTimeOffset.Parse("2020-01-01T00:00:00+00:00"));
+        payload.Data.EndDate.ShouldBeNull();
+        payload.Data.Active.ShouldBe(true);
         var mark = payload.Data.HerdMarks.ShouldHaveSingleItem();
         mark.Mark.ShouldBe("UK 123456");
         mark.Species.ShouldBe(["Cattle"]);
@@ -370,6 +373,9 @@ public class LivestockLookupEndpointsTest
         holding.Name.ShouldBe("Oakfield Farm");
         holding.HoldingType.ShouldBe("AH");
         holding.KeeperName.ShouldBe("Oakfield Farmer");
+        holding.StartDate.ShouldBe(DateTimeOffset.Parse("2020-01-01T00:00:00+00:00"));
+        holding.EndDate.ShouldBeNull();
+        holding.Active.ShouldBe(true);
 
         factory.HoldingClient.LastHoldingQuery.ShouldNotBeNull();
         factory.HoldingClient.LastHoldingQuery.Search.ShouldBe("oakfield");
@@ -391,6 +397,7 @@ public class LivestockLookupEndpointsTest
         body.ShouldContain("\"has_next_page\":false");
         body.ShouldContain("\"holding_type\":\"AH\"");
         body.ShouldContain("\"keeper_name\":\"Oakfield Farmer\"");
+        body.ShouldContain("\"active\":true");
     }
 
     [Fact]
@@ -509,6 +516,9 @@ public class LivestockLookupEndpointsTest
                         HoldingType = "AH",
                         Address = ["1 Farm Lane", "Shrewsbury", "SY1 1AA"],
                         KeeperName = "Oakfield Farmer",
+                        StartDate = DateTimeOffset.Parse("2020-01-01T00:00:00+00:00"),
+                        EndDate = null,
+                        Active = true,
                     },
                 ],
             });
@@ -556,6 +566,9 @@ public class LivestockLookupEndpointsTest
                 HoldingType = "AH",
                 Address = ["1 Farm Lane", "Shrewsbury", "SY1 1AA"],
                 KeeperName = "Test Keeper",
+                StartDate = DateTimeOffset.Parse("2020-01-01T00:00:00+00:00"),
+                EndDate = null,
+                Active = true,
                 HerdMarks = [new HoldingMarkResponse { Mark = "UK 123456", Species = ["Cattle"] }],
                 AllowedSpecies = ["Cattle"],
                 Associations =
