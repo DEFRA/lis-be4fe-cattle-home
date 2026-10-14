@@ -12,8 +12,10 @@ The current foundation is intentionally small:
 
 ## Structure
 
-- `src/CattleHome` contains the application code
-- `tests/CattleHome.Tests` contains smoke and endpoint tests
+- `src/Api` contains the application code, with the cattle API client in `src/Integrations/CattleApi` and shared
+  models in `src/Models`
+- `tests/Api.Tests` and `tests/Integrations/CattleApi.Tests` contain the unit and endpoint tests
+- `tests/Endpoints` contains `.http` requests for every `/api` endpoint (see Testing)
 - `compose.yml` starts MongoDB and this API for local development
 
 ## Running locally
@@ -27,7 +29,7 @@ docker compose up -d mongodb
 Run the API from the repo root:
 
 ```bash
-dotnet run --project src/CattleHome/CattleHome.csproj --launch-profile CattleHome
+dotnet run --project src/Api --launch-profile Development   # http://localhost:8085
 ```
 
 The development profile wires:
@@ -91,14 +93,14 @@ docker compose up --build
 
 ## Endpoints
 
-- `GET /` returns module metadata and whether Mongo and cattle API have been configured
 - `GET /health` returns the liveness check
-- `GET /openapi/v1.json` returns the OpenAPI v1 specification
-- `GET /swagger/index.html` opens the interactive Swagger UI
+- `GET /openapi/v1.json` returns the OpenAPI v1 specification (`/openapi` redirects to it)
+- `GET /scalar/v1` opens the interactive Scalar API reference
 - `GET /api/users/{userId}/cphs` returns CPHs for a user, using Mongo cache first
 - `GET /api/users/{userId}` returns a user's details and associated CPHs from the cattle API (no caching); 404 when the user is unknown
 - `POST /api/users` creates or refreshes a user account in KRDS through the cattle API from the claims `sub`, `email`, `given_name` and `family_name`, returning the user's details (no caching). Always 200; 400 for a missing or invalid claim, 409 when the email belongs to another account, 503 while KRDS is temporarily unavailable. See `tests/Endpoints/users/Users.http`
-- `GET /api/cphs/{county}/{parish}/{holding}` returns holding details from the cattle API
+- `GET /api/cphs/{county}/{parish}/{holding}` returns holding details from the cattle API; 404 when the holding is unknown
+- `GET /api/cphs?search=&page=&pageSize=&sort=&order=` searches holdings in KRDS through the cattle API, paged
 - `GET /api/cphs/{county}/{parish}/{holding}/cattle?eartag=&breed=&sex=` returns live cattle on a CPH from the cattle API, optionally filtered
 - `GET /api/cattle/{cattleId}` returns cattle details from the cattle API, using Mongo cache first; 404 when the animal is unknown
 
@@ -109,3 +111,22 @@ Run the solution tests:
 ```bash
 dotnet test be4fe-cattle-home.slnx
 ```
+
+### Endpoint requests (`tests/Endpoints`)
+
+`tests/Endpoints` holds JetBrains HTTP client requests, with asserts, for every `/api` endpoint, grouped by area
+(`cphs`, `cattle`, `users`, `health`). `security/Security.http` checks that a missing or wrong `x-api-key` gives
+`401` and that a missing `x-cdp-request-id` gives `400 missing_header`. Run them from the IDE or with `ijhttp`:
+
+```bash
+cd tests/Endpoints
+ijhttp --env-file http-client.env.json --env local health/Health.http users/Users.http cphs/Cphs.http cattle/Cattle.http security/Security.http
+```
+
+- `local` expects this API on 8085, the cattle API on 5019 and lis-fake-service on 3000, using the Oakfield fixtures.
+- `dev-operational` runs the same requests through a local cattle API that calls KRDS and CADS in CDP dev. See
+  "Running locally against CDP dev" in the lis-api-cattle README. Replace the placeholder `cph`, `cattleId` and
+  `subject` with identifiers that exist in dev, and don't commit responses, because they contain real keeper data.
+
+Cattle details are cached in Mongo, so clear the cache before checking a cattle details call reaches the upstream.
+`GET /api/users/{userId}/cphs` still reads the fixture, not the cattle API.

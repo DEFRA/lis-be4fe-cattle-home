@@ -1,0 +1,47 @@
+### Get holding details
+GET {{host}}/api/cphs/{{cph}}
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_200_OK.js
+
+### Get holding details (unknown CPH)
+GET {{host}}/api/cphs/99/999/9999
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_404.js
+
+### Get holding details (invalid CPH)
+GET {{host}}/api/cphs/1/2/3
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_400_bad_request.js
+
+### Search holdings
+GET {{host}}/api/cphs?search=Farm&page=1&pageSize=5
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_200_OK.js
+
+### Get cattle on holding
+GET {{host}}/api/cphs/{{cph}}/cattle
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_200_OK.js
+
+### Get cattle on holding (filtered by sex)
+GET {{host}}/api/cphs/{{cph}}/cattle?sex=female
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_200_OK.js

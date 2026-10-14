@@ -1,8 +1,3 @@
-# Local defaults (Properties/launchSettings.json); the cattle API and lis-fake-service must be running too.
-@host = http://localhost:8085
-@apiKey = local-dev-cattle-home-api-key
-@subject = 0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51
-
 ### Create or refresh a user account (lis-fake-service keeps accounts in memory, so run this before the GET)
 POST {{host}}/api/users
 x-api-key: {{apiKey}}
@@ -17,7 +12,9 @@ Accept: application/json
   "family_name": "LastName"
 }
 
-### Create a user account (missing email) - 400
+> ../asserts/Should_be_200_OK.js
+
+### Create a user account (missing email)
 POST {{host}}/api/users
 x-api-key: {{apiKey}}
 x-cdp-request-id: {{$guid}}
@@ -30,7 +27,9 @@ Accept: application/json
   "family_name": "LastName"
 }
 
-### Create a user account (email already bound to another subject) - 409
+> ../asserts/Should_be_400_bad_request.js
+
+### Create a user account (email already bound to another subject)
 POST {{host}}/api/users
 x-api-key: {{apiKey}}
 x-cdp-request-id: {{$guid}}
@@ -44,8 +43,28 @@ Accept: application/json
   "family_name": "LastName"
 }
 
+> ../asserts/Should_be_409_conflict.js
+
 ### Get user details
 GET {{host}}/api/users/{{subject}}
 x-api-key: {{apiKey}}
 x-cdp-request-id: {{$guid}}
 Accept: application/json
+
+> ../asserts/Should_be_200_OK.js
+
+### Get user details (unknown subject)
+GET {{host}}/api/users/00000000-0000-4000-8000-000000000000
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_404.js
+
+### Get CPHs for a user (still read from src/Api/Fixtures/CattleApi/cattle.json, not the cattle API)
+GET {{host}}/api/users/{{fixtureUserId}}/cphs
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_200_OK.js
