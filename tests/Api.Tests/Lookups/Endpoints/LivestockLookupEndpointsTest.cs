@@ -418,7 +418,7 @@ public class LivestockLookupEndpointsTest
 
     private sealed class LookupTestFactory : WebApplicationFactory<Program>
     {
-        public const string TestApiKey = "test-api-key";
+        private const string TestApiKey = "test-api-key";
 
         public TestCattleApiClient CattleApiClient { get; } = new();
 
