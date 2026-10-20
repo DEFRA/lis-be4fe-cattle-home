@@ -14,14 +14,14 @@ public static class OpenApiMetadata
     {
         public const string Name = "GetCphsForUser";
         public const string Summary = "Gets the CPH holdings available to a user.";
-        public const string Description = "Returns the holdings for a user from the Mongo cache when available, otherwise from the scaffolded CPH provider.";
+        public const string Description = "Returns the CPHs the user is associated with in the keeper data service (KRDS), with holding name and role, from the cattle API (no caching). The user id is the identity provider (Defra ID) subject. 404 when the user is unknown, 503 when the cattle API reports that it or the keeper data service is temporarily unavailable.";
     }
 
     public static class GetUserDetails
     {
         public const string Name = "GetUserDetails";
         public const string Summary = "Gets a user's details and associated CPHs.";
-        public const string Description = "Returns the user's details and the CPHs they were associated with when they last signed in, from the cattle API (no caching). The user id is the identity provider (Defra ID) subject. 404 when the user is unknown.";
+        public const string Description = "Returns the user's details and the CPHs they were associated with when they last signed in, from the cattle API (no caching). The user id is the identity provider (Defra ID) subject. 404 when the user is unknown, 503 when the cattle API reports that it or the keeper data service is temporarily unavailable.";
     }
 
     public static class CreateUser

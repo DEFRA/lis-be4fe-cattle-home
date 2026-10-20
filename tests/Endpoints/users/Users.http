@@ -61,10 +61,18 @@ Accept: application/json
 
 > ../asserts/Should_be_404.js
 
-### Get CPHs for a user (still read from src/Api/Fixtures/CattleApi/cattle.json, not the cattle API)
-GET {{host}}/api/users/{{fixtureUserId}}/cphs
+### Get CPHs for a user
+GET {{host}}/api/users/{{subject}}/cphs
 x-api-key: {{apiKey}}
 x-cdp-request-id: {{$guid}}
 Accept: application/json
 
 > ../asserts/Should_be_200_OK.js
+
+### Get CPHs for a user (unknown subject)
+GET {{host}}/api/users/00000000-0000-4000-8000-000000000000/cphs
+x-api-key: {{apiKey}}
+x-cdp-request-id: {{$guid}}
+Accept: application/json
+
+> ../asserts/Should_be_404.js
