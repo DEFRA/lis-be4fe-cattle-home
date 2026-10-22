@@ -8,43 +8,28 @@ using Defra.Lis.Be4Fe.CattleApi;
 using Defra.Lis.Be4Fe.Models.Lookups.Models;
 
 public sealed partial class UserLookupService(
-    ICachedDataService cachedDataService,
-    ICattleApiClient cattleApiClient,
     ICattleHoldingClient cattleHoldingClient,
     ILogger<UserLookupService> logger)
     : IUserLookupService
 {
-    public async Task<CachedLookupResponse<List<UserCph>>> GetCphsForUserAsync(string userId, CancellationToken cancellationToken = default)
+    public async Task<CachedLookupResponse<List<UserHolding>>> GetCphsForUserAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var normalisedUserId = Normalise(userId);
-        var cached = await cachedDataService
-            .TryGetCachedAsync<List<UserCph>>(
-                "user-cphs",
-                normalisedUserId,
-                cancellationToken);
+        // Not cached, like the user details: the associations are refreshed in KRDS every time the user signs in.
+        var details = await cattleHoldingClient.GetUserDetailsAsync(userId, cancellationToken);
+        var cphs = details.Cphs.ToList();
+        LogRetrievedCphsForUser(cphs.Count);
 
-        if (cached is not null)
+        return new CachedLookupResponse<List<UserHolding>>
         {
-            LogCacheHitForUserCphsUseridUserid(normalisedUserId);
-            return cached;
-        }
-
-        LogCacheMissForUserCphsRetrievingFromProviderUseridUserid(normalisedUserId);
-        var cphs = (await cattleApiClient.GetCphsForUserAsync(normalisedUserId, cancellationToken)).ToList();
-        LogRetrievedCountCphsForUserUseridUserid(cphs.Count, normalisedUserId);
-
-        return await cachedDataService
-            .StoreAndWrapAsync(
-                "user-cphs",
-                normalisedUserId,
-                cphs,
-                "cph-provider",
-                cancellationToken);
+            Source = LookupSources.CattleApi,
+            CachedUntilUtc = null,
+            Data = cphs,
+        };
     }
 
     public async Task<CachedLookupResponse<UserDetails>> GetUserDetailsAsync(string userId, CancellationToken cancellationToken = default)
     {
-        // Not normalised like the fixture lookup above: the subject is opaque and case-sensitive.
+        // The subject is opaque and case-sensitive, so it is passed through unchanged.
         var details = await cattleHoldingClient.GetUserDetailsAsync(userId, cancellationToken);
 
         return new CachedLookupResponse<UserDetails>
@@ -66,10 +51,5 @@ public sealed partial class UserLookupService(
             CachedUntilUtc = null,
             Data = details,
         };
-    }
-
-    private static string Normalise(string value)
-    {
-        return value.Trim().ToUpperInvariant();
     }
 }

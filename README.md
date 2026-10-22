@@ -7,8 +7,7 @@ The current foundation is intentionally small:
 - minimal ASP.NET API surface
 - MongoDB for interim and ephemeral state
 - short-lived lookup caching in MongoDB
-- fake KRDS and cattle providers behind interfaces that can be replaced later
-- JSON-backed cattle data behind `ICattleApiClient`, ready to be replaced by the downstream HTTP client
+- holding, cattle and user lookups passed through to the cattle API (`lis-api-cattle`), which reads KRDS and CADS
 
 ## Structure
 
@@ -54,9 +53,12 @@ lookup is made, so the service starts (and answers `/health`) without it.
 Cattle details come from CADS through the cattle API, which does not return the holding, so `cph`
 is null and `sire_name` is unsupplied until the upstream contract carries them.
 
-User CPH responses are still read from `src/Api/Fixtures/CattleApi/cattle.json` until the cattle
-API provides them. The path can be overridden with `CattleApi__FixturePath`; relative paths are
-resolved from the published application directory.
+The user's CPHs (`GET /api/users/{userId}/cphs`) are the KRDS associations returned by the cattle
+API's `GET /v1/users/{subject}`, passed through without caching. No fixture data ships with the
+service.
+
+The cattle API is an internal CDP service, so it is called directly over the internal CDP network,
+without the outbound proxy (the default .NET handler still honours `HTTP(S)_PROXY` and `NO_PROXY`).
 
 ## Authentication
 
@@ -96,7 +98,7 @@ docker compose up --build
 - `GET /health` returns the liveness check
 - `GET /openapi/v1.json` returns the OpenAPI v1 specification (`/openapi` redirects to it)
 - `GET /scalar/v1` opens the interactive Scalar API reference
-- `GET /api/users/{userId}/cphs` returns CPHs for a user, using Mongo cache first
+- `GET /api/users/{userId}/cphs` returns the CPHs a user is associated with in KRDS, with holding name and role, from the cattle API (no caching); 404 when the user is unknown, 503 when the cattle API reports that it or KRDS is temporarily unavailable
 - `GET /api/users/{userId}` returns a user's details and associated CPHs from the cattle API (no caching); 404 when the user is unknown
 - `POST /api/users` creates or refreshes a user account in KRDS through the cattle API from the claims `sub`, `email`, `given_name` and `family_name`, returning the user's details (no caching). Always 200; 400 for a missing or invalid claim, 409 when the email belongs to another account, 503 while KRDS is temporarily unavailable. See `tests/Endpoints/users/Users.http`
 - `GET /api/cphs/{county}/{parish}/{holding}` returns holding details from the cattle API; 404 when the holding is unknown
@@ -129,4 +131,3 @@ ijhttp --env-file http-client.env.json --env local health/Health.http users/User
   `subject` with identifiers that exist in dev, and don't commit responses, because they contain real keeper data.
 
 Cattle details are cached in Mongo, so clear the cache before checking a cattle details call reaches the upstream.
-`GET /api/users/{userId}/cphs` still reads the fixture, not the cattle API.

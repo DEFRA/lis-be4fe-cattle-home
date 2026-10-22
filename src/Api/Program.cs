@@ -19,7 +19,6 @@ using Defra.Lis.Be4Fe.Api.MetaData;
 using Defra.Lis.Be4Fe.Api.Middleware;
 using Defra.Lis.Be4Fe.Api.Services;
 using Defra.Lis.Be4Fe.Api.Utils;
-using Defra.Lis.Be4Fe.Api.Utils.Http;
 using Defra.Lis.Be4Fe.Api.Utils.Logging;
 using Defra.Lis.Be4Fe.Api.Utils.Mongo;
 using Defra.Lis.Be4Fe.CattleApi;
@@ -82,17 +81,6 @@ public class Program
             options.SerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.SnakeCaseLower;
         });
 
-        // Default HTTP Client
-        builder.Services
-            .AddHttpClient("DefaultClient")
-            .AddHeaderPropagation();
-
-        // Proxy HTTP Client
-        builder.Services.AddTransient<ProxyHttpMessageHandler>();
-        builder.Services
-            .AddHttpClient("proxy")
-            .ConfigurePrimaryHttpMessageHandler<ProxyHttpMessageHandler>();
-
         var services = builder.Services;
 
         // Trust material must be loaded before anything creates outbound connections.
@@ -128,7 +116,6 @@ public class Program
     [ExcludeFromCodeCoverage]
     private static void ConfigureExternalDependencies(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddTransient<ProxyHttpMessageHandler>();
         services.AddSingleton(TimeProvider.System);
 
         services.AddOptions<CacheOptions>()
@@ -150,16 +137,6 @@ public class Program
 
         services.AddSingleton<IExternalDataCacheRepository, MongoExternalDataCacheRepository>();
         services.AddSingleton<ICachedDataService, CachedDataService>();
-        services.AddSingleton<ICattleApiClient>(_ =>
-        {
-            var fixturePath = configuration.GetValue<string>($"{CattleApiOptions.SectionName}:FixturePath")
-                ?? throw new InvalidOperationException("CattleApi:FixturePath must be configured.");
-            var resolvedFixturePath = Path.IsPathRooted(fixturePath)
-                ? fixturePath
-                : Path.Combine(AppContext.BaseDirectory, fixturePath);
-
-            return new JsonCattleApiClient(resolvedFixturePath);
-        });
 
         // Scoped, not singleton: it now depends on the scoped cattle API REST client.
         services.AddScoped<IUserLookupService, UserLookupService>();

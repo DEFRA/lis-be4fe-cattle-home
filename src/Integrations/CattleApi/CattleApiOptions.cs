@@ -17,9 +17,4 @@ public sealed class CattleApiOptions
     /// Gets the API key sent to the cattle API as <c>x-api-key</c>. Required: the cattle API rejects calls without it.
     /// </summary>
     public string? ApiKey { get; init; }
-
-    /// <summary>
-    /// Gets the fixture file backing the user CPH and cattle detail lookups until the cattle API provides them.
-    /// </summary>
-    public string FixturePath { get; init; } = "Fixtures/CattleApi/cattle.json";
 }

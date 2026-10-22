@@ -21,7 +21,10 @@ public static class UsersEndpoints
             .WithName(OpenApiMetadata.GetCphsForUser.Name)
             .WithSummary(OpenApiMetadata.GetCphsForUser.Summary)
             .WithDescription(OpenApiMetadata.GetCphsForUser.Description)
-            .Produces<CachedLookupResponse<List<UserCph>>>(StatusCodes.Status200OK);
+            .Produces<CachedLookupResponse<List<UserHolding>>>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         group.MapGet(RouteNames.Users + "/{userId}", GetUserDetails)
             .WithName(OpenApiMetadata.GetUserDetails.Name)
@@ -29,7 +32,8 @@ public static class UsersEndpoints
             .WithDescription(OpenApiMetadata.GetUserDetails.Description)
             .Produces<CachedLookupResponse<UserDetails>>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         group.MapPost(RouteNames.Users, CreateUser)
             .WithName(OpenApiMetadata.CreateUser.Name)

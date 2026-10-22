@@ -26,17 +26,18 @@ public partial class CattleHoldingRestClient
     [LoggerMessage(LogLevel.Warning, "The cattle API does not know the animal. EarTag: {EarTag}")]
     partial void LogCattleNotFound(string earTag);
 
-    [LoggerMessage(LogLevel.Information, "Retrieved user details with {Count} CPHs from the cattle API. UserId: {UserId}")]
-    partial void LogRetrievedUserDetails(int count, string userId);
+    // The Defra ID subject is personal data, so the user messages never include it.
+    [LoggerMessage(LogLevel.Information, "Retrieved user details with {Count} CPHs from the cattle API.")]
+    partial void LogRetrievedUserDetails(int count);
 
-    [LoggerMessage(LogLevel.Warning, "The cattle API does not know the user. UserId: {UserId}")]
-    partial void LogUserNotFound(string userId);
+    [LoggerMessage(LogLevel.Warning, "The cattle API does not know the user.")]
+    partial void LogUserNotFound();
 
-    [LoggerMessage(LogLevel.Information, "Created or refreshed the user account with {Count} CPHs through the cattle API. UserId: {UserId}")]
-    partial void LogCreatedUser(int count, string userId);
+    [LoggerMessage(LogLevel.Information, "Created or refreshed the user account with {Count} CPHs through the cattle API.")]
+    partial void LogCreatedUser(int count);
 
-    [LoggerMessage(LogLevel.Warning, "The cattle API refused the user account: the email belongs to another account. UserId: {UserId}")]
-    partial void LogUserConflict(string userId);
+    [LoggerMessage(LogLevel.Warning, "The cattle API refused the user account: the email belongs to another account.")]
+    partial void LogUserConflict();
 
     [LoggerMessage(LogLevel.Warning, "The cattle API is temporarily unavailable. Action: {Action}")]
     partial void LogCattleApiUnavailable(string action);
