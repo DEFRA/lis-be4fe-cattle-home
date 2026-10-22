@@ -41,9 +41,9 @@ public sealed partial class CattleHoldingRestClient(
 
         try
         {
-            var details = await BuildStrategy("Get holding details", cancellationToken)
+            var details = await ExecuteAsync("Get holding details", cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/holdings/{segments.ToRoute()}")
-                .ExecuteAndTransform<CattleApiHoldingDetailed, HoldingDetailedResponse>(holding => ToHoldingDetails(segments, holding));
+                .ExecuteAndTransform<CattleApiHoldingDetailed, HoldingDetailedResponse>(holding => ToHoldingDetails(segments, holding)));
 
             LogRetrievedHoldingDetails(segments.ToString());
 
@@ -66,14 +66,14 @@ public sealed partial class CattleHoldingRestClient(
 
         try
         {
-            var result = await BuildStrategy("Search holdings", cancellationToken)
+            var result = await ExecuteAsync("Search holdings", cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/holdings")
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Search), "Search", query.Search?.Trim() ?? string.Empty)
                 .WithQueryParameter(() => query.Page.HasValue, "Page", query.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
                 .WithQueryParameter(() => query.PageSize.HasValue, "PageSize", query.PageSize?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Sort), "Sort", query.Sort?.Trim() ?? string.Empty)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Order), "Order", query.Order?.Trim() ?? string.Empty)
-                .ExecuteAndTransform<CattleApiPaginatedResponse<CattleApiHolding>, PaginatedResponse<HoldingResponse>>(ToPaginatedHoldings);
+                .ExecuteAndTransform<CattleApiPaginatedResponse<CattleApiHolding>, PaginatedResponse<HoldingResponse>>(ToPaginatedHoldings));
 
             LogRetrievedHoldings(result.Items.Count, result.TotalCount, result.Page, result.TotalPages, !query.IsEmpty);
 
@@ -93,14 +93,12 @@ public sealed partial class CattleHoldingRestClient(
 
         try
         {
-            var strategy = BuildStrategy("Search cattle on holding", cancellationToken)
+            var cattle = await ExecuteAsync("Search cattle on holding", cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/holdings/{segments.ToRoute()}/cattle")
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Eartag), "earTag", query.Eartag?.Trim() ?? string.Empty)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Breed), "breed", query.Breed?.Trim() ?? string.Empty)
-                .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Sex), "sex", query.Sex?.Trim() ?? string.Empty);
-
-            var cattle = await strategy.ExecuteAndTransform<List<CattleApiCattle>, IReadOnlyCollection<CattleSummary>>(
-                list => list.Select(ToCattleSummary).ToList());
+                .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Sex), "sex", query.Sex?.Trim() ?? string.Empty)
+                .ExecuteAndTransform<List<CattleApiCattle>, IReadOnlyCollection<CattleSummary>>(list => list.Select(ToCattleSummary).ToList()));
 
             LogRetrievedCattleForHolding(cattle.Count, segments.ToString(), !query.IsEmpty);
 
@@ -125,9 +123,9 @@ public sealed partial class CattleHoldingRestClient(
 
         try
         {
-            var details = await BuildStrategy("Get cattle details", cancellationToken)
+            var details = await ExecuteAsync("Get cattle details", cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/cattle/{Uri.EscapeDataString(trimmedEarTag)}")
-                .ExecuteAndTransform<CattleApiCattleDetails, CattleDetails>(ToCattleDetails);
+                .ExecuteAndTransform<CattleApiCattleDetails, CattleDetails>(ToCattleDetails));
 
             LogRetrievedCattleDetails(trimmedEarTag);
 
@@ -149,9 +147,9 @@ public sealed partial class CattleHoldingRestClient(
 
         try
         {
-            var details = await BuildStrategy("Get user details", cancellationToken)
+            var details = await ExecuteAsync("Get user details", cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/users/{Uri.EscapeDataString(trimmedUserId)}")
-                .ExecuteAndTransform<CattleApiUserDetails, UserDetails>(user => ToUserDetails(trimmedUserId, user));
+                .ExecuteAndTransform<CattleApiUserDetails, UserDetails>(user => ToUserDetails(trimmedUserId, user)));
 
             LogRetrievedUserDetails(details.Cphs.Count, trimmedUserId);
 
@@ -178,11 +176,11 @@ public sealed partial class CattleHoldingRestClient(
 
         try
         {
-            var details = await BuildStrategy("Create user", cancellationToken)
+            var details = await ExecuteAsync("Create user", cancellationToken, strategy => strategy
                 .WithPost()
                 .WithResourceUrl($"{ApiVersion}/users")
                 .WithPayload(payload)
-                .ExecuteAndTransform<CattleApiUserDetails, UserDetails>(user => ToUserDetails(subject, user));
+                .ExecuteAndTransform<CattleApiUserDetails, UserDetails>(user => ToUserDetails(subject, user)));
 
             LogCreatedUser(details.Cphs.Count, subject);
 
@@ -387,6 +385,31 @@ public sealed partial class CattleHoldingRestClient(
 
     private static bool HasStatus(RestResponseException exception, HttpStatusCode statusCode) =>
         exception.InnerException is HttpRequestException { StatusCode: { } actual } && actual == statusCode;
+
+    // The SDK wraps a transport failure (connection refused, DNS failure, timeout) in a RestRequestException. A
+    // cancelled caller token is the caller giving up, not the cattle API being unavailable, so it is left alone.
+    private static bool IsUnreachable(RestRequestException exception, CancellationToken cancellationToken) =>
+        (exception.InnerException is HttpRequestException or OperationCanceledException) && !cancellationToken.IsCancellationRequested;
+
+    /// <summary>
+    /// Builds the strategy for <paramref name="action"/> and runs <paramref name="execute"/> against it, turning an
+    /// unreachable cattle API into a <see cref="ServiceUnavailableException"/> (503) so the caller can retry.
+    /// </summary>
+    private async Task<TResult> ExecuteAsync<TResult>(
+        string action,
+        CancellationToken cancellationToken,
+        Func<IRestStrategy<CattleHoldingRestClient>, Task<TResult>> execute)
+    {
+        try
+        {
+            return await execute(BuildStrategy(action, cancellationToken));
+        }
+        catch (RestRequestException ex) when (IsUnreachable(ex, cancellationToken))
+        {
+            LogCattleApiUnreachable(action, ex);
+            throw new ServiceUnavailableException("The cattle API is temporarily unavailable, try again later.", ex);
+        }
+    }
 
     private IRestStrategy<CattleHoldingRestClient> BuildStrategy(string action, CancellationToken cancellationToken)
     {
