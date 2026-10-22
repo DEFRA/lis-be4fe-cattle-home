@@ -7,7 +7,9 @@ namespace Defra.Lis.Be4Fe.CattleApi;
 using Defra.Lis.Be4Fe.Models.Lookups.Models;
 
 /// <summary>
-/// Holding, animal and user lookups passed through to the cattle API.
+/// Holding, animal and user lookups passed through to the cattle API. Every member throws
+/// <see cref="ServiceUnavailableException"/> when the cattle API cannot be reached (connection refused, DNS failure or
+/// timeout), so callers can retry.
 /// </summary>
 public interface ICattleHoldingClient
 {

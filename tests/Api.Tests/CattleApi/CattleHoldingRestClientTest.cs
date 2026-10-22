@@ -80,6 +80,23 @@ public sealed class CattleHoldingRestClientTest
 
     private readonly StubHttpMessageHandler handler = new();
 
+    public static TheoryData<Exception> TransportFailures => new()
+    {
+        new HttpRequestException("Connection refused (cattle-api.test:80)", new System.Net.Sockets.SocketException(111)),
+        new HttpRequestException("Name or service not known (cattle-api.test:80)"),
+        new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.", new TimeoutException()),
+    };
+
+    public static TheoryData<string> CattleApiCalls => new()
+    {
+        "holding details",
+        "holding search",
+        "cattle search",
+        "cattle details",
+        "user details",
+        "create user",
+    };
+
     [Fact]
     public async Task GetHoldingDetailsShouldCallTheCattleApiWithTheApiKey()
     {
@@ -626,6 +643,67 @@ public sealed class CattleHoldingRestClientTest
 
         exception.ShouldNotBeNull();
     }
+
+    [Theory]
+    [MemberData(nameof(TransportFailures))]
+    public async Task GetHoldingDetailsAsync_ThrowsServiceUnavailable_WhenTheCattleApiCannotBeReached(Exception failure)
+    {
+        handler.FailWith(failure);
+        var client = CreateClient();
+
+        var exception = await Should.ThrowAsync<ServiceUnavailableException>(
+            () => client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
+
+        exception.InnerException.ShouldBeOfType<RestRequestException>().InnerException.ShouldBeSameAs(failure);
+    }
+
+    [Theory]
+    [MemberData(nameof(CattleApiCalls))]
+    public async Task EveryCall_ThrowsServiceUnavailable_WhenTheCattleApiRefusesTheConnection(string call)
+    {
+        handler.FailWith(new HttpRequestException("Connection refused (cattle-api.test:80)"));
+        var client = CreateClient();
+
+        await Should.ThrowAsync<ServiceUnavailableException>(() => Call(client, call, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task ClientShouldNotTreatCallerCancellationAsTheCattleApiBeingUnavailable()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        handler.FailWith(new TaskCanceledException("The operation was canceled.", null, cancellation.Token));
+        var client = CreateClient();
+
+        var exception = await Should.ThrowAsync<Exception>(() => client.GetHoldingDetailsAsync("22/001/0001", cancellation.Token));
+
+        exception.ShouldNotBeOfType<ServiceUnavailableException>();
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    [InlineData(HttpStatusCode.Forbidden)]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    public async Task GetHoldingDetailsAsync_DoesNotTreatAuthOrServerFailuresAsUnavailable(HttpStatusCode statusCode)
+    {
+        // A rejected key or an outright cattle API fault is not retryable: it stays a 500 through ApiExceptionHandler.
+        handler.RespondWith(statusCode, $$"""{"status":{{(int)statusCode}}}""");
+        var client = CreateClient();
+
+        await Should.ThrowAsync<RestResponseException>(
+            () => client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
+    }
+
+    private static Task Call(CattleHoldingRestClient client, string call, CancellationToken cancellationToken) => call switch
+    {
+        "holding details" => client.GetHoldingDetailsAsync("22/001/0001", cancellationToken),
+        "holding search" => client.SearchHoldingsAsync(new HoldingSearchQuery(Search: "Oakfield"), cancellationToken),
+        "cattle search" => client.SearchCattleAsync("22/001/0001", new CattleSearchQuery(), cancellationToken),
+        "cattle details" => client.GetCattleDetailsAsync("UK200000000001", cancellationToken),
+        "user details" => client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", cancellationToken),
+        "create user" => client.CreateUserAsync(TestClaims(), cancellationToken),
+        _ => throw new ArgumentOutOfRangeException(nameof(call), call, null),
+    };
 
     private static CreateUserRequest TestClaims() => new()
     {

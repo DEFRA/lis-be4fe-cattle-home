@@ -23,21 +23,24 @@ public static class CphsEndpoints
             .WithSummary(OpenApiMetadata.GetHoldingDetails.Summary)
             .WithDescription(OpenApiMetadata.GetHoldingDetails.Description)
             .Produces<CachedLookupResponse<HoldingDetailedResponse>>(StatusCodes.Status200OK)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         group.MapGet(RouteNames.CountyParishHoldings, SearchHoldings)
             .WithName(OpenApiMetadata.SearchHoldings.Name)
             .WithSummary(OpenApiMetadata.SearchHoldings.Summary)
             .WithDescription(OpenApiMetadata.SearchHoldings.Description)
             .Produces<PaginatedResponse<HoldingResponse>>(StatusCodes.Status200OK)
-            .ProducesProblem(StatusCodes.Status400BadRequest);
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         group.MapGet(RouteNames.CountyParishHoldings + "/{county}/{parish}/{holding}/cattle", GetCattleForCph)
             .WithName(OpenApiMetadata.GetCattleForCph.Name)
             .WithSummary(OpenApiMetadata.GetCattleForCph.Summary)
             .WithDescription(OpenApiMetadata.GetCattleForCph.Description)
             .Produces<CachedLookupResponse<List<CattleSummary>>>(StatusCodes.Status200OK)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         return app;
     }

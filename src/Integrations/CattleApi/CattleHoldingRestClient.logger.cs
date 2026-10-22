@@ -41,4 +41,7 @@ public partial class CattleHoldingRestClient
 
     [LoggerMessage(LogLevel.Warning, "The cattle API is temporarily unavailable. Action: {Action}")]
     partial void LogCattleApiUnavailable(string action);
+
+    [LoggerMessage(LogLevel.Warning, "The cattle API could not be reached. Action: {Action}")]
+    partial void LogCattleApiUnreachable(string action, Exception exception);
 }

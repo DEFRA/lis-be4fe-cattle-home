@@ -23,7 +23,8 @@ public static class CattleEndpoints
             .WithSummary(OpenApiMetadata.GetCattleDetails.Summary)
             .WithDescription(OpenApiMetadata.GetCattleDetails.Description)
             .Produces<CachedLookupResponse<CattleDetails>>(StatusCodes.Status200OK)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         return app;
     }
