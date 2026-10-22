@@ -10,10 +10,13 @@ using MongoDB.Driver;
 
 public sealed class MongoExternalDataCacheRepository : IExternalDataCacheRepository
 {
+    private const int IndexesNotCreated = 0;
+    private const int IndexesBeingCreated = 1;
+    private const int IndexesCreated = 2;
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
     private readonly IMongoCollection<ExternalDataCacheDocument> collection;
     private readonly ILogger<MongoExternalDataCacheRepository> logger;
-    private int indexesInitialised;
+    private int indexState = IndexesNotCreated;
 
     public MongoExternalDataCacheRepository(
         IMongoDbClientFactory mongoDbClientFactory,
@@ -85,7 +88,9 @@ public sealed class MongoExternalDataCacheRepository : IExternalDataCacheReposit
 
     private async Task EnsureIndexesAsync(CancellationToken cancellationToken)
     {
-        if (Interlocked.Exchange(ref indexesInitialised, 1) == 1)
+        // Only one caller creates the index at a time; the others carry on without waiting, as reads filter on
+        // ExpiresAtUtc anyway. The state only reaches IndexesCreated on success, so a failure is retried later.
+        if (Interlocked.CompareExchange(ref indexState, IndexesBeingCreated, IndexesNotCreated) != IndexesNotCreated)
         {
             return;
         }
@@ -97,10 +102,12 @@ public sealed class MongoExternalDataCacheRepository : IExternalDataCacheReposit
         try
         {
             await collection.Indexes.CreateOneAsync(expiryIndex, cancellationToken: cancellationToken);
+            Volatile.Write(ref indexState, IndexesCreated);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Unable to create Mongo cache indexes. Continuing without ensuring indexes.");
+            Volatile.Write(ref indexState, IndexesNotCreated);
+            logger.LogWarning(ex, "Unable to create Mongo cache indexes. Continuing without them; the next cache call retries.");
         }
     }
 }

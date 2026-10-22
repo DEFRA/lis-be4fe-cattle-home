@@ -27,32 +27,54 @@ public class LivestockLookupEndpointsTest
     };
 
     [Fact]
-    public async Task GetCphsForUserShouldCacheProviderResponse()
+    public async Task GetCphsForUserShouldReturnTheUsersCphsFromTheCattleApiWithoutCaching()
     {
         await using var factory = new LookupTestFactory();
         var client = factory.CreateAuthenticatedClient();
 
-        var first = await client.GetFromJsonAsync<CachedLookupResponse<List<UserCph>>>(
-            "/api/users/alice/cphs",
-            SerializerOptions,
-            TestContext.Current.CancellationToken);
-        var second = await client.GetFromJsonAsync<CachedLookupResponse<List<UserCph>>>(
-            "/api/users/alice/cphs",
+        await client.GetAsync("/api/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51/cphs", TestContext.Current.CancellationToken);
+        var response = await client.GetAsync("/api/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51/cphs", TestContext.Current.CancellationToken);
+        var payload = await response.Content.ReadFromJsonAsync<CachedLookupResponse<List<UserHolding>>>(
             SerializerOptions,
             TestContext.Current.CancellationToken);
 
-        first.ShouldNotBeNull();
-        second.ShouldNotBeNull();
-        first.Source.ShouldBe("cph-provider");
-        second.Source.ShouldBe("cache");
-        first.Data.Count.ShouldBe(2);
-        second.Data.Count.ShouldBe(2);
-        first.Data[0].BusinessName.ShouldBe("Alice Primary Livestock Ltd");
-        first.Data[0].Address.ShouldBe(["1 Farm Lane", "Shrewsbury", "SY1 1AA"]);
-        first.Data[0].HoldingType.ShouldBe("Permanent");
-        first.Data[0].RegisteredKeeper.ShouldBe("Alice Keeper");
-        first.Data[0].HerdMarks.ShouldBe(["UK 123456"]);
-        factory.CattleApiClient.UserCallCount.ShouldBe(1);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        payload.ShouldNotBeNull();
+        payload.Source.ShouldBe("cattle-api");
+        payload.CachedUntilUtc.ShouldBeNull();
+        var cph = payload.Data.ShouldHaveSingleItem();
+        cph.Cph.ShouldBe("22/001/0001");
+        cph.HoldingId.ShouldBe("holding-0001");
+        cph.HoldingName.ShouldBe("Oakfield Farm");
+        cph.Role.ShouldBe("Keeper");
+        factory.HoldingClient.UserDetailCallCount.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task GetCphsForUserShouldPassTheUserIdThroughWithoutChangingItsCase()
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateAuthenticatedClient();
+
+        await client.GetAsync("/api/users/AbC-def/cphs", TestContext.Current.CancellationToken);
+
+        factory.HoldingClient.LastUserId.ShouldBe("AbC-def");
+    }
+
+    [Theory]
+    [InlineData("unknown-user", HttpStatusCode.NotFound)]
+    [InlineData("rejected-user", HttpStatusCode.BadRequest)]
+    [InlineData("unavailable-user", HttpStatusCode.ServiceUnavailable)]
+    public async Task GetCphsForUserShouldReturnProblemDetailsForCattleApiFailures(string userId, HttpStatusCode expected)
+    {
+        await using var factory = new LookupTestFactory();
+        var client = factory.CreateAuthenticatedClient();
+
+        var response = await client.GetAsync($"/api/users/{userId}/cphs", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(expected);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.ShouldContain($"\"status\":{(int)expected}");
     }
 
     [Fact]
@@ -420,8 +442,6 @@ public class LivestockLookupEndpointsTest
     {
         private const string TestApiKey = "test-api-key";
 
-        public TestCattleApiClient CattleApiClient { get; } = new();
-
         public TestCattleHoldingClient HoldingClient { get; } = new();
 
         public HttpClient CreateAuthenticatedClient()
@@ -438,11 +458,9 @@ public class LivestockLookupEndpointsTest
             builder.ConfigureTestServices(services =>
             {
                 services.RemoveAll<IExternalDataCacheRepository>();
-                services.RemoveAll<ICattleApiClient>();
                 services.RemoveAll<ICattleHoldingClient>();
 
                 services.AddSingleton<IExternalDataCacheRepository, InMemoryExternalDataCacheRepository>();
-                services.AddSingleton<ICattleApiClient>(CattleApiClient);
                 services.AddSingleton<ICattleHoldingClient>(HoldingClient);
             });
         }
@@ -537,6 +555,11 @@ public class LivestockLookupEndpointsTest
             if (userId.StartsWith("rejected", StringComparison.Ordinal))
             {
                 throw new ArgumentException($"The cattle API rejected user '{userId}'.", nameof(userId));
+            }
+
+            if (userId.StartsWith("unavailable", StringComparison.Ordinal))
+            {
+                throw new ServiceUnavailableException("The user account service is temporarily unavailable, try again later.", new HttpRequestException());
             }
 
             return Task.FromResult(new UserDetails
@@ -679,36 +702,6 @@ public class LivestockLookupEndpointsTest
             var json = System.Text.Json.JsonSerializer.Serialize(value, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
             cache[id] = (json, expiresAtUtc);
             return Task.CompletedTask;
-        }
-    }
-
-    private sealed class TestCattleApiClient : ICattleApiClient
-    {
-        public int UserCallCount { get; private set; }
-
-        public Task<IReadOnlyCollection<UserCph>> GetCphsForUserAsync(string userId, CancellationToken cancellationToken = default)
-        {
-            UserCallCount++;
-
-            return Task.FromResult<IReadOnlyCollection<UserCph>>(
-            [
-                new UserCph
-                {
-                    Cph = "12/345/6789",
-                    Name = $"{userId} Primary",
-                    BusinessName = "Alice Primary Livestock Ltd",
-                    Address = ["1 Farm Lane", "Shrewsbury", "SY1 1AA"],
-                    HoldingType = "Permanent",
-                    RegisteredKeeper = "Alice Keeper",
-                    HerdMarks = ["UK 123456"],
-                },
-                new UserCph
-                {
-                    Cph = "98/765/4321",
-                    Name = $"{userId} Secondary",
-                    BusinessName = "Alice Secondary Livestock Ltd",
-                },
-            ]);
         }
     }
 }

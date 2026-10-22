@@ -151,18 +151,23 @@ public sealed partial class CattleHoldingRestClient(
                 .WithResourceUrl($"{ApiVersion}/users/{Uri.EscapeDataString(trimmedUserId)}")
                 .ExecuteAndTransform<CattleApiUserDetails, UserDetails>(user => ToUserDetails(trimmedUserId, user)));
 
-            LogRetrievedUserDetails(details.Cphs.Count, trimmedUserId);
+            LogRetrievedUserDetails(details.Cphs.Count);
 
             return details;
         }
         catch (RestResponseException ex) when (IsNotFound(ex))
         {
-            LogUserNotFound(trimmedUserId);
+            LogUserNotFound();
             throw new UserNotFoundException(trimmedUserId);
         }
         catch (RestResponseException ex) when (IsBadRequest(ex))
         {
             throw new ArgumentException($"The cattle API rejected user '{trimmedUserId}'.", nameof(userId), ex);
+        }
+        catch (RestResponseException ex) when (HasStatus(ex, HttpStatusCode.ServiceUnavailable))
+        {
+            LogCattleApiUnavailable("Get user details");
+            throw new ServiceUnavailableException("The user account service is temporarily unavailable, try again later.", ex);
         }
     }
 
@@ -170,7 +175,7 @@ public sealed partial class CattleHoldingRestClient(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        // The claims are validated by the cattle API; the subject is the only one logged, as the rest are personal data.
+        // The claims are validated by the cattle API and none are logged: the subject is personal data too.
         var subject = request.Sub?.Trim() ?? string.Empty;
         var payload = new CattleApiCreateUserRequest(request.Sub, request.Email, request.GivenName, request.FamilyName);
 
@@ -182,7 +187,7 @@ public sealed partial class CattleHoldingRestClient(
                 .WithPayload(payload)
                 .ExecuteAndTransform<CattleApiUserDetails, UserDetails>(user => ToUserDetails(subject, user)));
 
-            LogCreatedUser(details.Cphs.Count, subject);
+            LogCreatedUser(details.Cphs.Count);
 
             return details;
         }
@@ -192,7 +197,7 @@ public sealed partial class CattleHoldingRestClient(
         }
         catch (RestResponseException ex) when (HasStatus(ex, HttpStatusCode.Conflict))
         {
-            LogUserConflict(subject);
+            LogUserConflict();
             throw new UserConflictException(subject);
         }
         catch (RestResponseException ex) when (HasStatus(ex, HttpStatusCode.ServiceUnavailable))

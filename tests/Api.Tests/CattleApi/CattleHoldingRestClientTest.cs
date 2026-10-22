@@ -527,6 +527,16 @@ public sealed class CattleHoldingRestClientTest
     }
 
     [Fact]
+    public async Task GetUserDetailsShouldThrowServiceUnavailableOn503()
+    {
+        handler.RespondWith(HttpStatusCode.ServiceUnavailable, """{"title":"Service Unavailable","status":503}""");
+        var client = CreateClient();
+
+        await Should.ThrowAsync<ServiceUnavailableException>(
+            () => client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task GetUserDetailsShouldPropagateOtherFailures()
     {
         handler.RespondWith(HttpStatusCode.InternalServerError, """{"title":"Internal Server Error","status":500}""");

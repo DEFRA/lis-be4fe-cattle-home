@@ -8,7 +8,10 @@ using Defra.Lis.Be4Fe.Models.Lookups.Models;
 
 public interface IUserLookupService
 {
-    Task<CachedLookupResponse<List<UserCph>>> GetCphsForUserAsync(string userId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Gets the CPHs a user is associated with in KRDS, passed straight through to the cattle API (no caching).
+    /// </summary>
+    Task<CachedLookupResponse<List<UserHolding>>> GetCphsForUserAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a user's details and associated CPHs, passed straight through to the cattle API (no caching in this phase).
