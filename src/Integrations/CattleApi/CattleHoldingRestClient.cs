@@ -162,7 +162,7 @@ public sealed partial class CattleHoldingRestClient(
         }
         catch (RestResponseException ex) when (IsBadRequest(ex))
         {
-            throw new ArgumentException($"The cattle API rejected user '{trimmedUserId}'.", nameof(userId), ex);
+            throw new ArgumentException("The cattle API rejected the user id.", nameof(userId), ex);
         }
         catch (RestResponseException ex) when (HasStatus(ex, HttpStatusCode.ServiceUnavailable))
         {

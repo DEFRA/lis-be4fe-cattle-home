@@ -185,7 +185,10 @@ the CDP portal for every deployed environment.
 
 With no inbound key configured, the API starts and answers `/health` but rejects every `/api` request. With no
 `CattleApi__BaseUrl` or `CattleApi__ApiKey`, it also starts, but lookups fail with a configuration error.
-On CDP, logs go to the console in Elastic Common Schema format.
+On CDP, logs go to the console in Elastic Common Schema format. Request paths are logged as the route template
+(for example `/api/users/{userId}`), never the raw path, because the path can carry the Defra ID subject. The
+sources that log raw URLs (ASP.NET Core hosting, `HttpClient` and the SDK REST client) are held at `Warning`
+whatever the configuration says.
 
 ## Running tests
 

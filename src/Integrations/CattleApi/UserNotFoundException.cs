@@ -5,7 +5,7 @@
 namespace Defra.Lis.Be4Fe.CattleApi;
 
 public sealed class UserNotFoundException(string userId)
-    : Exception($"User '{userId}' was not found.")
+    : Exception("The user was not found.")
 {
     public string UserId { get; } = userId;
 }

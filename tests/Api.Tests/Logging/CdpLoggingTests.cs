@@ -6,6 +6,7 @@ namespace Defra.Lis.Be4Fe.Api.Tests.Logging;
 
 using Defra.Lis.Be4Fe.Api.Utils.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
@@ -26,7 +27,9 @@ public class CdpLoggingTests
         };
         var configuration = new LoggerConfiguration();
 
-        CdpLogging.Configuration(context, configuration);
+        var services = new ServiceCollection().AddHttpContextAccessor().BuildServiceProvider();
+
+        CdpLogging.Configuration(context, services, configuration);
         using var logger = configuration.CreateLogger();
 
         var overridden = logger.ForContext(Serilog.Core.Constants.SourceContextPropertyName, "Microsoft.AspNetCore.Hosting.Diagnostics");
