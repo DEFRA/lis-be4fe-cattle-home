@@ -27,6 +27,10 @@ public static class CdpLogging
             .Filter.With<AuditLogger.Filters.ExcludeAuditEvents>()
             .CreateLogger();
 
+        // Serilog applies MinimumLevel overrides where an event is created, never in a sub-logger, so the
+        // Serilog:MinimumLevel settings must be read onto this logger too or the overrides do nothing.
+        config.ReadFrom.Configuration(MinimumLevelSettings(ctx.Configuration));
+
         if (traceIdHeader != null)
         {
             config.Enrich.WithCorrelationId(traceIdHeader);
@@ -38,4 +42,9 @@ public static class CdpLogging
             .WriteTo.Logger(mainLogger)
             .WriteTo.Logger(auditLogger);
     }
+
+    private static IConfiguration MinimumLevelSettings(IConfiguration configuration) =>
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(configuration.GetSection("Serilog:MinimumLevel").AsEnumerable())
+            .Build();
 }
