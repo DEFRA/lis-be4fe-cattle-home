@@ -10,7 +10,6 @@
   <ItemGroup>
     <PackageReference Include="Defra.Livestock.Sdk.Api.Strategies" />
     <PackageReference Include="Elastic.CommonSchema.Serilog"/>
-    <PackageReference Include="Elastic.Serilog.Enrichers.Web"/>
     <PackageReference Include="Microsoft.AspNetCore.HeaderPropagation"/>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.OpenApi" />

@@ -6,6 +6,7 @@ namespace Defra.Lis.Be4Fe.Api.Middleware;
 
 using Defra.Lis.Be4Fe.Api.MetaData;
 using Defra.Lis.Be4Fe.Api.Middleware.Headers;
+using Defra.Lis.Be4Fe.Api.Utils.Logging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
@@ -42,7 +43,7 @@ public partial class CorrelationIdMiddleware(ILogger<CorrelationIdMiddleware> lo
             var correlationId = values.Count == 1 ? NormalizeHeaderValue(values.ToString()) : null;
             if (string.IsNullOrWhiteSpace(correlationId))
             {
-                LogMissingCorrelationId(logger, context.Request.Method, context.Request.Path);
+                LogMissingCorrelationId(logger, context.Request.Method, LoggableRequestPath.For(context));
                 await WriteJsonErrorAsync(
                     context,
                     statusCode: StatusCodes.Status400BadRequest,
