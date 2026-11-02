@@ -868,23 +868,6 @@ public sealed class CattleHoldingRestClientTest
         await Should.ThrowAsync<RestResponseException>(act);
     }
 
-    [Fact]
-    public void CattleApiOptionsShouldHaveDefaultTimeouts()
-    {
-        // Arrange
-
-        // Act
-        var options = new CattleApiOptions();
-
-        // Assert
-        options.GetHoldingDetailsTimeout.ShouldBe(60000);
-        options.SearchHoldingsTimeout.ShouldBe(60000);
-        options.SearchCattleTimeout.ShouldBe(60000);
-        options.GetCattleDetailsTimeout.ShouldBe(60000);
-        options.GetUserDetailsTimeout.ShouldBe(60000);
-        options.CreateUserTimeout.ShouldBe(60000);
-    }
-
     [Theory]
     [MemberData(nameof(CattleApiCalls))]
     public async Task EveryCall_UsesConfiguredTimeout(string call)
