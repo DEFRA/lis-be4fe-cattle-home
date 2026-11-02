@@ -873,17 +873,18 @@ public sealed class CattleHoldingRestClientTest
     public async Task EveryCall_UsesConfiguredTimeout(string call)
     {
         // Arrange
-        handler.RespondWith(
-            HttpStatusCode.OK,
-            call switch {
-                "holding details" => OakfieldHolding,
-                "holding search" => PaginatedHoldings,
-                "cattle search" => TwoCattle,
-                "cattle details" => OakfieldAnimal,
-                "user details" => TestUser,
-                "create user" => TestUser,
-                _ => "{}",
-            });
+        var response = call switch
+        {
+            "holding details" => OakfieldHolding,
+            "holding search" => PaginatedHoldings,
+            "cattle search" => TwoCattle,
+            "cattle details" => OakfieldAnimal,
+            "user details" => TestUser,
+            "create user" => TestUser,
+            _ => "{}",
+        };
+
+        handler.RespondWith(HttpStatusCode.OK, response);
 
         var options = new CattleApiOptions
         {
