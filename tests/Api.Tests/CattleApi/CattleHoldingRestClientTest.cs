@@ -17,94 +17,102 @@ using Microsoft.Extensions.Logging.Abstractions;
 public sealed class CattleHoldingRestClientTest
 {
     private const string OakfieldHolding = """
-        {"cph":"22/001/0001","name":"Oakfield Farm","holdingType":"AH",
-         "address":["Oakfield Farm","Church Lane","Shrewsbury","Shropshire","SY4 1AB","England"],
-         "keeperName":"Oakfield Farmer",
-         "startDate":"2020-01-01T00:00:00+00:00",
-         "endDate":null,
-         "active":true,
-         "herdMarks":[{"mark":"UK 324537","startDate":"2020-01-01T00:00:00+00:00","endDate":null,"species":["Cattle"]}],
-         "allowedSpecies":["Cattle"],
-         "associations":[{"customerNumber":"CN123","title":"Mr","firstName":"Oakfield","lastName":"Farmer","name":"Oakfield Farmer","partyType":"Individual","email":"farmer@example.com","mobile":"07123456789","telephone":"0123456789","address":["Oakfield Farm"],"roles":[{"code":"KEEPER","species":["Cattle"]}]}]}
-        """;
+                                           {"cph":"22/001/0001","name":"Oakfield Farm","holdingType":"AH",
+                                            "address":["Oakfield Farm","Church Lane","Shrewsbury","Shropshire","SY4 1AB","England"],
+                                            "keeperName":"Oakfield Farmer",
+                                            "startDate":"2020-01-01T00:00:00+00:00",
+                                            "endDate":null,
+                                            "active":true,
+                                            "herdMarks":[{"mark":"UK 324537","startDate":"2020-01-01T00:00:00+00:00","endDate":null,"species":["Cattle"]}],
+                                            "allowedSpecies":["Cattle"],
+                                            "associations":[{"customerNumber":"CN123","title":"Mr","firstName":"Oakfield","lastName":"Farmer","name":"Oakfield Farmer","partyType":"Individual","email":"farmer@example.com","mobile":"07123456789","telephone":"0123456789","address":["Oakfield Farm"],"roles":[{"code":"KEEPER","species":["Cattle"]}]}]}
+                                           """;
 
     private const string PaginatedHoldings = """
-        {
-          "count": 1,
-          "totalCount": 25,
-          "page": 2,
-          "pageSize": 10,
-          "totalPages": 3,
-          "hasNextPage": true,
-          "hasPreviousPage": true,
-          "items": [
-            {
-              "cph": "22/001/0001",
-              "name": "Oakfield Farm",
-              "holdingType": "AH",
-              "address": ["Oakfield Farm", "Church Lane", "Shrewsbury", "Shropshire", "SY4 1AB", "England"],
-              "keeperName": "Oakfield Farmer",
-              "startDate": "2020-01-01T00:00:00+00:00",
-              "endDate": null,
-              "active": true
-            }
-          ]
-        }
-        """;
+                                             {
+                                               "count": 1,
+                                               "totalCount": 25,
+                                               "page": 2,
+                                               "pageSize": 10,
+                                               "totalPages": 3,
+                                               "hasNextPage": true,
+                                               "hasPreviousPage": true,
+                                               "items": [
+                                                 {
+                                                   "cph": "22/001/0001",
+                                                   "name": "Oakfield Farm",
+                                                   "holdingType": "AH",
+                                                   "address": ["Oakfield Farm", "Church Lane", "Shrewsbury", "Shropshire", "SY4 1AB", "England"],
+                                                   "keeperName": "Oakfield Farmer",
+                                                   "startDate": "2020-01-01T00:00:00+00:00",
+                                                   "endDate": null,
+                                                   "active": true
+                                                 }
+                                               ]
+                                             }
+                                             """;
 
     private const string TwoCattle = """
-        [
-          {"earTag":"UK200000000001","dateBirth":"2023-02-01","dateOnCph":"2023-02-15","sex":"Male","breed":"Aberdeen Angus","breedCode":"AA","breedName":"Aberdeen Angus","status":"Alive","errors":[]},
-          {"earTag":"UK200000000002","dateBirth":null,"dateOnCph":null,"sex":null,"breed":null,"breedCode":null,"breedName":null,"status":"Alive","errors":[]}
-        ]
-        """;
+                                     [
+                                       {"earTag":"UK200000000001","dateBirth":"2023-02-01","dateOnCph":"2023-02-15","sex":"Male","breed":"Aberdeen Angus","breedCode":"AA","breedName":"Aberdeen Angus","status":"Alive","errors":[]},
+                                       {"earTag":"UK200000000002","dateBirth":null,"dateOnCph":null,"sex":null,"breed":null,"breedCode":null,"breedName":null,"status":"Alive","errors":[]}
+                                     ]
+                                     """;
 
     private const string OakfieldAnimal = """
-        {"earTag":"UK200000000001","species":"Cattle","sex":"Male","dateBirth":"2023-02-01",
-         "dateRegistered":"2023-02-05","dateOnCph":"2023-02-01","breed":"Aberdeen Angus",
-         "breedCode":"AA","breedName":"Aberdeen Angus","state":"Alive","restrictionStatus":"None",
-         "damType":"genetic","geneticDamEarTag":"UK200000000098","surrogateDamEarTag":null,
-         "sireEarTag":"UK200000000099","sireName":null,
-         "currentLocation":{"identifier":"22/001/0001","subIdentifier":"sub1","fullIdentifier":"22/001/0001/sub1","name":"Oakfield Farm","premisesType":"Agricultural"},
-         "registeredLocation":{"identifier":"22/002/0002","subIdentifier":null,"fullIdentifier":"22/002/0002","name":"Birth Farm","premisesType":"Agricultural"},
-         "deathLocation":null}
-        """;
+                                          {"earTag":"UK200000000001","species":"Cattle","sex":"Male","dateBirth":"2023-02-01",
+                                           "dateRegistered":"2023-02-05","dateOnCph":"2023-02-01","breed":"Aberdeen Angus",
+                                           "breedCode":"AA","breedName":"Aberdeen Angus","state":"Alive","restrictionStatus":"None",
+                                           "damType":"genetic","geneticDamEarTag":"UK200000000098","surrogateDamEarTag":null,
+                                           "sireEarTag":"UK200000000099","sireName":null,
+                                           "currentLocation":{"identifier":"22/001/0001","subIdentifier":"sub1","fullIdentifier":"22/001/0001/sub1","name":"Oakfield Farm","premisesType":"Agricultural"},
+                                           "registeredLocation":{"identifier":"22/002/0002","subIdentifier":null,"fullIdentifier":"22/002/0002","name":"Birth Farm","premisesType":"Agricultural"},
+                                           "deathLocation":null}
+                                          """;
 
     private const string TestUser = """
-        {"subject":"0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51","email":"test.keeper@example.com",
-         "firstName":"Test","lastName":"Keeper","displayName":"Test Keeper",
-         "cphs":[{"cph":"22/001/0001","holdingId":"holding-0001","holdingName":"Oakfield Farm","role":"Keeper"},
-                 {"cph":"22/003/0003","holdingId":null,"holdingName":null,"role":"Keeper"},
-                 {"cph":null,"holdingId":null,"holdingName":null,"role":"Keeper"}]}
-        """;
+                                    {"subject":"0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51","email":"test.keeper@example.com",
+                                     "firstName":"Test","lastName":"Keeper","displayName":"Test Keeper",
+                                     "cphs":[{"cph":"22/001/0001","holdingId":"holding-0001","holdingName":"Oakfield Farm","role":"Keeper"},
+                                             {"cph":"22/003/0003","holdingId":null,"holdingName":null,"role":"Keeper"},
+                                             {"cph":null,"holdingId":null,"holdingName":null,"role":"Keeper"}]}
+                                    """;
 
     private readonly StubHttpMessageHandler handler = new();
 
-    public static TheoryData<Exception> TransportFailures => new()
-    {
-        new HttpRequestException("Connection refused (cattle-api.test:80)", new System.Net.Sockets.SocketException(111)),
-        new HttpRequestException("Name or service not known (cattle-api.test:80)"),
-        new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.", new TimeoutException()),
-    };
+    public static TheoryData<Exception> TransportFailures =>
+    [
+        new HttpRequestException(
+            "Connection refused (cattle-api.test:80)",
+            new System.Net.Sockets.SocketException(111)),
 
-    public static TheoryData<string> CattleApiCalls => new()
-    {
+        new HttpRequestException("Name or service not known (cattle-api.test:80)"),
+        new TaskCanceledException(
+            "The request was canceled due to the configured HttpClient.Timeout.",
+            new TimeoutException())
+    ];
+
+    public static TheoryData<string> CattleApiCalls =>
+    [
         "holding details",
         "holding search",
         "cattle search",
         "cattle details",
         "user details",
-        "create user",
-    };
+        "create user"
+    ];
 
     [Fact]
     public async Task GetHoldingDetailsShouldCallTheCattleApiWithTheApiKey()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, OakfieldHolding);
         var client = CreateClient(apiKey: "test-key");
 
+        // Act
         await client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken);
 
+        // Assert
         var request = handler.Requests.ShouldHaveSingleItem();
         request.Method.ShouldBe(HttpMethod.Get);
         request.RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/holdings/22/001/0001");
@@ -117,11 +125,14 @@ public sealed class CattleHoldingRestClientTest
     [InlineData(" ")]
     public async Task ClientShouldFailClearlyWhenTheApiKeyIsNotConfigured(string? apiKey)
     {
+        // Arrange
         var client = CreateClient(apiKey: apiKey);
 
-        var exception = await Should.ThrowAsync<InvalidOperationException>(
-            () => client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
+        // Act
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() =>
+            client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
 
+        // Assert
         exception.Message.ShouldContain("CattleApi:ApiKey");
         handler.Requests.ShouldBeEmpty();
     }
@@ -131,25 +142,31 @@ public sealed class CattleHoldingRestClientTest
     [InlineData(HttpStatusCode.Forbidden)]
     public async Task ClientShouldNotTurnACattleApiAuthFailureIntoACallerError(HttpStatusCode statusCode)
     {
+        // Arrange
         // The cattle API rejecting the BE4FE's own key is a configuration fault, not the UI's: it must surface as an
         // upstream failure (500 through ApiExceptionHandler), never as a 400/404 or a 401 passed back to the caller.
         handler.RespondWith(statusCode, $$"""{"status":{{(int)statusCode}}}""");
         var client = CreateClient();
 
-        var exception = await Should.ThrowAsync<RestResponseException>(
-            () => client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken));
+        // Act
+        var exception = await Should.ThrowAsync<RestResponseException>(() =>
+            client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken));
 
+        // Assert
         exception.ShouldNotBeAssignableTo<ArgumentException>();
     }
 
     [Fact]
     public async Task GetHoldingDetailsShouldMapTheCattleApiResponse()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, OakfieldHolding);
         var client = CreateClient();
 
+        // Act
         var details = await client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken);
 
+        // Assert
         details.Cph.ShouldBe("22/001/0001");
         details.Name.ShouldBe("Oakfield Farm");
         details.HoldingType.ShouldBe("AH");
@@ -183,55 +200,73 @@ public sealed class CattleHoldingRestClientTest
     [Fact]
     public async Task GetHoldingDetailsShouldThrowHoldingNotFoundOn404()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.NotFound, """{"title":"Not Found","status":404}""");
         var client = CreateClient();
 
-        var exception = await Should.ThrowAsync<HoldingNotFoundException>(
-            () => client.GetHoldingDetailsAsync("22/050/0050", TestContext.Current.CancellationToken));
+        // Act
+        var exception = await Should.ThrowAsync<HoldingNotFoundException>(() =>
+            client.GetHoldingDetailsAsync("22/050/0050", TestContext.Current.CancellationToken));
 
+        // Assert
         exception.Cph.ShouldBe("22/050/0050");
     }
 
     [Fact]
     public async Task GetHoldingDetailsShouldThrowArgumentExceptionWhenTheCattleApiRejectsTheCph()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.BadRequest, """{"title":"Bad Request","status":400}""");
         var client = CreateClient();
 
-        var exception = await Should.ThrowAsync<ArgumentException>(
-            () => client.GetHoldingDetailsAsync("2/1/1", TestContext.Current.CancellationToken));
+        // Act
+        var exception = await Should.ThrowAsync<ArgumentException>(() =>
+            client.GetHoldingDetailsAsync("2/1/1", TestContext.Current.CancellationToken));
 
+        // Assert
         exception.Message.ShouldContain("2/1/1");
     }
 
     [Fact]
     public async Task SearchCattleShouldThrowArgumentExceptionWhenTheCattleApiRejectsTheCph()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.BadRequest, """{"title":"Bad Request","status":400}""");
         var client = CreateClient();
 
-        await Should.ThrowAsync<ArgumentException>(
-            () => client.SearchCattleAsync("2/1/1", new CattleSearchQuery(), TestContext.Current.CancellationToken));
+        // Act
+        var act = () =>
+            client.SearchCattleAsync("2/1/1", new CattleSearchQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<ArgumentException>(act);
     }
 
     [Fact]
     public async Task GetHoldingDetailsShouldPropagateOtherFailures()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.Unauthorized, """{"title":"Unauthorized","status":401}""");
         var client = CreateClient();
 
-        await Should.ThrowAsync<RestResponseException>(
-            () => client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
+        // Act
+        var act = () => client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<RestResponseException>(act);
     }
 
     [Fact]
     public async Task SearchHoldingsShouldCallTheHoldingsRouteWithoutParametersByDefault()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, PaginatedHoldings);
         var client = CreateClient();
 
+        // Act
         var result = await client.SearchHoldingsAsync(new HoldingSearchQuery(), TestContext.Current.CancellationToken);
 
+        // Assert
         handler.Requests.ShouldHaveSingleItem().RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/holdings");
         result.Count.ShouldBe(1);
         result.TotalCount.ShouldBe(25);
@@ -255,24 +290,33 @@ public sealed class CattleHoldingRestClientTest
     [Fact]
     public async Task SearchHoldingsShouldPassSearchPagingAndSortingQueryParameters()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, PaginatedHoldings);
         var client = CreateClient();
 
+        // Act
         await client.SearchHoldingsAsync(
             new HoldingSearchQuery(Search: " Oakfield ", Page: 2, PageSize: 10, Sort: "name", Order: "desc"),
             TestContext.Current.CancellationToken);
 
-        handler.Requests.ShouldHaveSingleItem().RequestUri!.Query.ShouldBe("?Search=Oakfield&Page=2&PageSize=10&Sort=name&Order=desc");
+        // Assert
+        handler.Requests.ShouldHaveSingleItem().RequestUri!.Query.ShouldBe(
+            "?Search=Oakfield&Page=2&PageSize=10&Sort=name&Order=desc");
     }
 
     [Fact]
     public async Task SearchHoldingsShouldThrowArgumentExceptionWhenTheCattleApiRejectsQuery()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.BadRequest, """{"title":"Bad Request","status":400}""");
         var client = CreateClient();
 
-        await Should.ThrowAsync<ArgumentException>(
-            () => client.SearchHoldingsAsync(new HoldingSearchQuery(Page: -1), TestContext.Current.CancellationToken));
+        // Act
+        var act = () =>
+            client.SearchHoldingsAsync(new HoldingSearchQuery(Page: -1), TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<ArgumentException>(act);
     }
 
     [Theory]
@@ -281,32 +325,50 @@ public sealed class CattleHoldingRestClientTest
     [InlineData(" ")]
     public async Task GetHoldingDetailsShouldRejectMalformedCphWithoutCallingTheApi(string cph)
     {
+        // Arrange
         var client = CreateClient();
 
-        await Should.ThrowAsync<ArgumentException>(() => client.GetHoldingDetailsAsync(cph, TestContext.Current.CancellationToken));
+        // Act
+        var act = () => client.GetHoldingDetailsAsync(cph, TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<ArgumentException>(act);
         handler.Requests.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task SearchCattleShouldCallTheCattleRouteWithoutFiltersByDefault()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, TwoCattle);
         var client = CreateClient();
 
-        var cattle = await client.SearchCattleAsync("22-001-0001", new CattleSearchQuery(), TestContext.Current.CancellationToken);
+        // Act
+        var cattle = await client.SearchCattleAsync(
+            "22-001-0001",
+            new CattleSearchQuery(),
+            TestContext.Current.CancellationToken);
 
-        handler.Requests.ShouldHaveSingleItem().RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/holdings/22/001/0001/cattle");
+        // Assert
+        handler.Requests.ShouldHaveSingleItem().RequestUri!.ToString()
+            .ShouldBe("http://cattle-api.test/v1/holdings/22/001/0001/cattle");
         cattle.Count.ShouldBe(2);
     }
 
     [Fact]
     public async Task SearchCattleShouldPassSuppliedFiltersAsQueryParameters()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, "[]");
         var client = CreateClient();
 
-        var cattle = await client.SearchCattleAsync("22/001/0001", new CattleSearchQuery(Eartag: " UK2000 ", Breed: "AA", Sex: "female"), TestContext.Current.CancellationToken);
+        // Act
+        var cattle = await client.SearchCattleAsync(
+            "22/001/0001",
+            new CattleSearchQuery(Eartag: " UK2000 ", Breed: "AA", Sex: "female"),
+            TestContext.Current.CancellationToken);
 
+        // Assert
         handler.Requests.ShouldHaveSingleItem().RequestUri!.Query.ShouldBe("?earTag=UK2000&breed=AA&sex=female");
         cattle.ShouldBeEmpty();
     }
@@ -314,11 +376,17 @@ public sealed class CattleHoldingRestClientTest
     [Fact]
     public async Task SearchCattleShouldMapEachAnimalIncludingSparseRecords()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, TwoCattle);
         var client = CreateClient();
 
-        var cattle = (await client.SearchCattleAsync("22/001/0001", new CattleSearchQuery(), TestContext.Current.CancellationToken)).ToList();
+        // Act
+        var cattle = (await client.SearchCattleAsync(
+            "22/001/0001",
+            new CattleSearchQuery(),
+            TestContext.Current.CancellationToken)).ToList();
 
+        // Assert
         cattle[0].CattleId.ShouldBe("UK200000000001");
         cattle[0].Eartag.ShouldBe("UK200000000001");
         cattle[0].Breed.ShouldBe("Aberdeen Angus");
@@ -338,21 +406,29 @@ public sealed class CattleHoldingRestClientTest
     [Fact]
     public async Task SearchCattleShouldThrowHoldingNotFoundOn404()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.NotFound, """{"title":"Not Found","status":404}""");
         var client = CreateClient();
 
-        await Should.ThrowAsync<HoldingNotFoundException>(
-            () => client.SearchCattleAsync("22/050/0050", new CattleSearchQuery(), TestContext.Current.CancellationToken));
+        // Act
+        var act = () =>
+            client.SearchCattleAsync("22/050/0050", new CattleSearchQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<HoldingNotFoundException>(act);
     }
 
     [Fact]
     public async Task GetCattleDetailsShouldCallTheCattleRouteWithTheApiKey()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, OakfieldAnimal);
         var client = CreateClient(apiKey: "test-key");
 
+        // Act
         await client.GetCattleDetailsAsync("UK200000000001", TestContext.Current.CancellationToken);
 
+        // Assert
         var request = handler.Requests.ShouldHaveSingleItem();
         request.Method.ShouldBe(HttpMethod.Get);
         request.RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/cattle/UK200000000001");
@@ -362,11 +438,14 @@ public sealed class CattleHoldingRestClientTest
     [Fact]
     public async Task GetCattleDetailsShouldMapEveryFieldOntoTheUiContract()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, OakfieldAnimal);
         var client = CreateClient();
 
+        // Act
         var details = await client.GetCattleDetailsAsync("UK200000000001", TestContext.Current.CancellationToken);
 
+        // Assert
         details.CattleId.ShouldBe("UK200000000001");
         details.Eartag.ShouldBe("UK200000000001");
         details.Species.ShouldBe("Cattle");
@@ -403,22 +482,28 @@ public sealed class CattleHoldingRestClientTest
     [Fact]
     public async Task GetCattleDetailsShouldLeaveCphUnsetBecauseCadsDoesNotReturnIt()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, OakfieldAnimal);
         var client = CreateClient();
 
+        // Act
         var details = await client.GetCattleDetailsAsync("UK200000000001", TestContext.Current.CancellationToken);
 
+        // Assert
         details.Cph.ShouldBeNull();
     }
 
     [Fact]
     public async Task GetCattleDetailsShouldEscapeTheEarTagAndTrimIt()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, OakfieldAnimal);
         var client = CreateClient();
 
+        // Act
         await client.GetCattleDetailsAsync("  UK2 0000 00001  ", TestContext.Current.CancellationToken);
 
+        // Assert
         // AbsoluteUri, not ToString(), which renders %20 back as a space.
         handler.Requests.ShouldHaveSingleItem().RequestUri!.AbsoluteUri
             .ShouldBe("http://cattle-api.test/v1/cattle/UK2%200000%2000001");
@@ -427,23 +512,30 @@ public sealed class CattleHoldingRestClientTest
     [Fact]
     public async Task GetCattleDetailsShouldThrowCattleNotFoundOn404()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.NotFound, """{"title":"Not Found","status":404}""");
         var client = CreateClient();
 
-        var exception = await Should.ThrowAsync<CattleNotFoundException>(
-            () => client.GetCattleDetailsAsync("UK999999999999", TestContext.Current.CancellationToken));
+        // Act
+        var exception = await Should.ThrowAsync<CattleNotFoundException>(() =>
+            client.GetCattleDetailsAsync("UK999999999999", TestContext.Current.CancellationToken));
 
+        // Assert
         exception.EarTag.ShouldBe("UK999999999999");
     }
 
     [Fact]
     public async Task GetCattleDetailsShouldPropagateOtherFailures()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.Unauthorized, """{"title":"Unauthorized","status":401}""");
         var client = CreateClient();
 
-        await Should.ThrowAsync<RestResponseException>(
-            () => client.GetCattleDetailsAsync("UK200000000001", TestContext.Current.CancellationToken));
+        // Act
+        var act = () => client.GetCattleDetailsAsync("UK200000000001", TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<RestResponseException>(act);
     }
 
     [Theory]
@@ -451,34 +543,46 @@ public sealed class CattleHoldingRestClientTest
     [InlineData("  ")]
     public async Task GetCattleDetailsShouldRejectABlankEarTagWithoutCallingTheApi(string earTag)
     {
+        // Arrange
         var client = CreateClient();
 
-        await Should.ThrowAsync<ArgumentException>(() => client.GetCattleDetailsAsync(earTag, TestContext.Current.CancellationToken));
+        // Act
+        var act = () => client.GetCattleDetailsAsync(earTag, TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<ArgumentException>(act);
         handler.Requests.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task GetUserDetailsShouldCallTheCattleApiWithTheApiKey()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, TestUser);
         var client = CreateClient(apiKey: "test-key");
 
+        // Act
         await client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken);
 
+        // Assert
         var request = handler.Requests.ShouldHaveSingleItem();
         request.Method.ShouldBe(HttpMethod.Get);
-        request.RequestUri!.AbsoluteUri.ShouldBe("http://cattle-api.test/v1/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
+        request.RequestUri!.AbsoluteUri.ShouldBe(
+            "http://cattle-api.test/v1/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
         request.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldBe(["test-key"]);
     }
 
     [Fact]
     public async Task GetUserDetailsShouldEscapeAndTrimTheUserIdWithoutChangingItsCase()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, TestUser);
         var client = CreateClient();
 
+        // Act
         await client.GetUserDetailsAsync("  Idp|User/1  ", TestContext.Current.CancellationToken);
 
+        // Assert
         handler.Requests.ShouldHaveSingleItem().RequestUri!.AbsoluteUri
             .ShouldBe("http://cattle-api.test/v1/users/Idp%7CUser%2F1");
     }
@@ -486,11 +590,16 @@ public sealed class CattleHoldingRestClientTest
     [Fact]
     public async Task GetUserDetailsShouldMapTheCattleApiResponse()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, TestUser);
         var client = CreateClient();
 
-        var user = await client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken);
+        // Act
+        var user = await client.GetUserDetailsAsync(
+            "0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51",
+            TestContext.Current.CancellationToken);
 
+        // Assert
         user.Subject.ShouldBe("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
         user.Email.ShouldBe("test.keeper@example.com");
         user.FirstName.ShouldBe("Test");
@@ -507,43 +616,60 @@ public sealed class CattleHoldingRestClientTest
     [Fact]
     public async Task GetUserDetailsShouldThrowUserNotFoundOn404()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.NotFound, """{"title":"Not Found","status":404}""");
         var client = CreateClient();
 
-        var exception = await Should.ThrowAsync<UserNotFoundException>(
-            () => client.GetUserDetailsAsync("00000000-0000-4000-8000-000000000000", TestContext.Current.CancellationToken));
+        // Act
+        var exception = await Should.ThrowAsync<UserNotFoundException>(() =>
+            client.GetUserDetailsAsync("00000000-0000-4000-8000-000000000000", TestContext.Current.CancellationToken));
 
+        // Assert
         exception.UserId.ShouldBe("00000000-0000-4000-8000-000000000000");
     }
 
     [Fact]
     public async Task GetUserDetailsShouldThrowArgumentExceptionOn400()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.BadRequest, """{"title":"Bad Request","status":400}""");
         var client = CreateClient();
 
-        await Should.ThrowAsync<ArgumentException>(
-            () => client.GetUserDetailsAsync("not-a-uuid", TestContext.Current.CancellationToken));
+        // Act
+        var act = () => client.GetUserDetailsAsync("not-a-uuid", TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<ArgumentException>(act);
     }
 
     [Fact]
     public async Task GetUserDetailsShouldThrowServiceUnavailableOn503()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.ServiceUnavailable, """{"title":"Service Unavailable","status":503}""");
         var client = CreateClient();
 
-        await Should.ThrowAsync<ServiceUnavailableException>(
-            () => client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken));
+        // Act
+        var act = () =>
+            client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<ServiceUnavailableException>(act);
     }
 
     [Fact]
     public async Task GetUserDetailsShouldPropagateOtherFailures()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.InternalServerError, """{"title":"Internal Server Error","status":500}""");
         var client = CreateClient();
 
-        await Should.ThrowAsync<RestResponseException>(
-            () => client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken));
+        // Act
+        var act = () =>
+            client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<RestResponseException>(act);
     }
 
     [Theory]
@@ -551,20 +677,28 @@ public sealed class CattleHoldingRestClientTest
     [InlineData("  ")]
     public async Task GetUserDetailsShouldRejectABlankUserIdWithoutCallingTheApi(string userId)
     {
+        // Arrange
         var client = CreateClient();
 
-        await Should.ThrowAsync<ArgumentException>(() => client.GetUserDetailsAsync(userId, TestContext.Current.CancellationToken));
+        // Act
+        var act = () => client.GetUserDetailsAsync(userId, TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<ArgumentException>(act);
         handler.Requests.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task ClientShouldFailClearlyWhenTheBaseUrlIsNotConfigured()
     {
+        // Arrange
         var client = CreateClient(baseUrl: string.Empty);
 
-        var exception = await Should.ThrowAsync<InvalidOperationException>(
-            () => client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
+        // Act
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() =>
+            client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
 
+        // Assert
         exception.Message.ShouldContain("CattleApi:BaseUrl");
         handler.Requests.ShouldBeEmpty();
     }
@@ -572,11 +706,14 @@ public sealed class CattleHoldingRestClientTest
     [Fact]
     public async Task CreateUserAsync_PostsTheClaimsInSnakeCaseWithTheApiKey()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, TestUser);
         var client = CreateClient(apiKey: "test-key");
 
+        // Act
         await client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken);
 
+        // Assert
         var request = handler.Requests.ShouldHaveSingleItem();
         request.Method.ShouldBe(HttpMethod.Post);
         request.RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/users");
@@ -592,11 +729,14 @@ public sealed class CattleHoldingRestClientTest
     [Fact]
     public async Task CreateUserAsync_MapsTheReturnedUser()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.OK, TestUser);
         var client = CreateClient();
 
+        // Act
         var user = await client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken);
 
+        // Assert
         user.Subject.ShouldBe("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
         user.DisplayName.ShouldBe("Test Keeper");
         user.Cphs.Select(cph => cph.Cph).ShouldBe(["22/001/0001", "22/003/0003"]);
@@ -605,30 +745,44 @@ public sealed class CattleHoldingRestClientTest
     [Fact]
     public async Task CreateUserAsync_ThrowsArgumentException_WhenTheCattleApiRejectsTheClaims()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.BadRequest, """{"title":"Bad Request","status":400}""");
         var client = CreateClient();
 
-        await Should.ThrowAsync<ArgumentException>(() => client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken));
+        // Act
+        var act = () => client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<ArgumentException>(act);
     }
 
     [Fact]
     public async Task CreateUserAsync_ThrowsUserConflict_WhenTheCattleApiReturns409()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.Conflict, """{"title":"Conflict","status":409}""");
         var client = CreateClient();
 
-        var exception = await Should.ThrowAsync<UserConflictException>(() => client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken));
+        // Act
+        var exception = await Should.ThrowAsync<UserConflictException>(() =>
+            client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken));
 
+        // Assert
         exception.UserId.ShouldBe("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
     }
 
     [Fact]
     public async Task CreateUserAsync_ThrowsServiceUnavailable_WhenTheCattleApiReturns503()
     {
+        // Arrange
         handler.RespondWith(HttpStatusCode.ServiceUnavailable, """{"title":"Service Unavailable","status":503}""");
         var client = CreateClient();
 
-        await Should.ThrowAsync<ServiceUnavailableException>(() => client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken));
+        // Act
+        var act = () => client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<ServiceUnavailableException>(act);
     }
 
     [Theory]
@@ -636,11 +790,15 @@ public sealed class CattleHoldingRestClientTest
     [InlineData(HttpStatusCode.InternalServerError)]
     public async Task CreateUserAsync_DoesNotTranslateAuthOrServerFailuresIntoClientErrors(HttpStatusCode statusCode)
     {
+        // Arrange
         handler.RespondWith(statusCode, $$"""{"status":{{(int)statusCode}}}""");
         var client = CreateClient();
 
-        var exception = await Should.ThrowAsync<RestResponseException>(() => client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken));
+        // Act
+        var exception = await Should.ThrowAsync<RestResponseException>(() =>
+            client.CreateUserAsync(TestClaims(), TestContext.Current.CancellationToken));
 
+        // Assert
         exception.ShouldNotBeNull();
     }
 
@@ -648,12 +806,15 @@ public sealed class CattleHoldingRestClientTest
     [MemberData(nameof(TransportFailures))]
     public async Task GetHoldingDetailsAsync_ThrowsServiceUnavailable_WhenTheCattleApiCannotBeReached(Exception failure)
     {
+        // Arrange
         handler.FailWith(failure);
         var client = CreateClient();
 
-        var exception = await Should.ThrowAsync<ServiceUnavailableException>(
-            () => client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
+        // Act
+        var exception = await Should.ThrowAsync<ServiceUnavailableException>(() =>
+            client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
 
+        // Assert
         exception.InnerException.ShouldBeOfType<RestRequestException>().InnerException.ShouldBeSameAs(failure);
     }
 
@@ -661,22 +822,31 @@ public sealed class CattleHoldingRestClientTest
     [MemberData(nameof(CattleApiCalls))]
     public async Task EveryCall_ThrowsServiceUnavailable_WhenTheCattleApiRefusesTheConnection(string call)
     {
+        // Arrange
         handler.FailWith(new HttpRequestException("Connection refused (cattle-api.test:80)"));
         var client = CreateClient();
 
-        await Should.ThrowAsync<ServiceUnavailableException>(() => Call(client, call, TestContext.Current.CancellationToken));
+        // Act
+        var act = () => Call(client, call, TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<ServiceUnavailableException>(act);
     }
 
     [Fact]
     public async Task ClientShouldNotTreatCallerCancellationAsTheCattleApiBeingUnavailable()
     {
+        // Arrange
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
         handler.FailWith(new TaskCanceledException("The operation was canceled.", null, cancellation.Token));
         var client = CreateClient();
 
-        var exception = await Should.ThrowAsync<Exception>(() => client.GetHoldingDetailsAsync("22/001/0001", cancellation.Token));
+        // Act
+        var exception =
+            await Should.ThrowAsync<Exception>(() => client.GetHoldingDetailsAsync("22/001/0001", cancellation.Token));
 
+        // Assert
         exception.ShouldNotBeOfType<ServiceUnavailableException>();
     }
 
@@ -686,24 +856,86 @@ public sealed class CattleHoldingRestClientTest
     [InlineData(HttpStatusCode.InternalServerError)]
     public async Task GetHoldingDetailsAsync_DoesNotTreatAuthOrServerFailuresAsUnavailable(HttpStatusCode statusCode)
     {
+        // Arrange
         // A rejected key or an outright cattle API fault is not retryable: it stays a 500 through ApiExceptionHandler.
         handler.RespondWith(statusCode, $$"""{"status":{{(int)statusCode}}}""");
         var client = CreateClient();
 
-        await Should.ThrowAsync<RestResponseException>(
-            () => client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
+        // Act
+        var act = () => client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken);
+
+        // Assert
+        await Should.ThrowAsync<RestResponseException>(act);
     }
 
-    private static Task Call(CattleHoldingRestClient client, string call, CancellationToken cancellationToken) => call switch
+    [Fact]
+    public void CattleApiOptionsShouldHaveDefaultTimeouts()
     {
-        "holding details" => client.GetHoldingDetailsAsync("22/001/0001", cancellationToken),
-        "holding search" => client.SearchHoldingsAsync(new HoldingSearchQuery(Search: "Oakfield"), cancellationToken),
-        "cattle search" => client.SearchCattleAsync("22/001/0001", new CattleSearchQuery(), cancellationToken),
-        "cattle details" => client.GetCattleDetailsAsync("UK200000000001", cancellationToken),
-        "user details" => client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", cancellationToken),
-        "create user" => client.CreateUserAsync(TestClaims(), cancellationToken),
-        _ => throw new ArgumentOutOfRangeException(nameof(call), call, null),
-    };
+        // Arrange
+
+        // Act
+        var options = new CattleApiOptions();
+
+        // Assert
+        options.GetHoldingDetailsTimeout.ShouldBe(60000);
+        options.SearchHoldingsTimeout.ShouldBe(60000);
+        options.SearchCattleTimeout.ShouldBe(60000);
+        options.GetCattleDetailsTimeout.ShouldBe(60000);
+        options.GetUserDetailsTimeout.ShouldBe(60000);
+        options.CreateUserTimeout.ShouldBe(60000);
+    }
+
+    [Theory]
+    [MemberData(nameof(CattleApiCalls))]
+    public async Task EveryCall_UsesConfiguredTimeout(string call)
+    {
+        // Arrange
+        handler.RespondWith(
+            HttpStatusCode.OK,
+            call switch {
+                "holding details" => OakfieldHolding,
+                "holding search" => PaginatedHoldings,
+                "cattle search" => TwoCattle,
+                "cattle details" => OakfieldAnimal,
+                "user details" => TestUser,
+                "create user" => TestUser,
+                _ => "{}",
+            });
+
+        var options = new CattleApiOptions
+        {
+            BaseUrl = "http://cattle-api.test/",
+            ApiKey = "key",
+            GetHoldingDetailsTimeout = 11,
+            SearchHoldingsTimeout = 12,
+            SearchCattleTimeout = 13,
+            GetCattleDetailsTimeout = 14,
+            GetUserDetailsTimeout = 15,
+            CreateUserTimeout = 16,
+        };
+
+        var client = CreateClient(options);
+
+        // Act
+        await Call(client, call, TestContext.Current.CancellationToken);
+
+        // Assert
+        handler.Requests.ShouldHaveSingleItem();
+    }
+
+    private static Task Call(CattleHoldingRestClient client, string call, CancellationToken cancellationToken) =>
+        call switch
+        {
+            "holding details" => client.GetHoldingDetailsAsync("22/001/0001", cancellationToken),
+            "holding search" => client.SearchHoldingsAsync(
+                new HoldingSearchQuery(Search: "Oakfield"),
+                cancellationToken),
+            "cattle search" => client.SearchCattleAsync("22/001/0001", new CattleSearchQuery(), cancellationToken),
+            "cattle details" => client.GetCattleDetailsAsync("UK200000000001", cancellationToken),
+            "user details" => client.GetUserDetailsAsync("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51", cancellationToken),
+            "create user" => client.CreateUserAsync(TestClaims(), cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(call), call, null),
+        };
 
     private static CreateUserRequest TestClaims() => new()
     {
@@ -716,6 +948,11 @@ public sealed class CattleHoldingRestClientTest
     private CattleHoldingRestClient CreateClient(string baseUrl = "http://cattle-api.test/", string? apiKey = "key")
     {
         var options = new CattleApiOptions { BaseUrl = baseUrl, ApiKey = apiKey };
+        return CreateClient(options);
+    }
+
+    private CattleHoldingRestClient CreateClient(CattleApiOptions options)
+    {
         var factory = new RestStrategyFactory<CattleHoldingRestClient>(new StubServiceProvider(handler));
 
         return new CattleHoldingRestClient(factory, options, NullLogger<CattleHoldingRestClient>.Instance);

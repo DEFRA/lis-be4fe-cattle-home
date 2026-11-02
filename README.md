@@ -173,6 +173,12 @@ the CDP portal for every deployed environment.
 | `Mongo__DatabaseName` | MongoDB database name | yes | `lis-be4fe-cattle-home` |
 | `CattleApi__BaseUrl` | Base URL of `lis-api-cattle`. CDP sets it per environment | for lookups | empty (`http://localhost:5019` in Development) |
 | `CattleApi__ApiKey` | Secret. Key sent to `lis-api-cattle` as `x-api-key`. Must match one of that API's `ApiKeyAuthentication__Keys__N` | for lookups | empty |
+| `CattleApi__GetHoldingDetailsTimeout` | Timeout in milliseconds when getting holding details from `lis-api-cattle` (min 1 ms, max 5 minutes) | no | `60000` |
+| `CattleApi__SearchHoldingsTimeout` | Timeout in milliseconds when searching holdings in `lis-api-cattle` (min 1 ms, max 5 minutes) | no | `60000` |
+| `CattleApi__SearchCattleTimeout` | Timeout in milliseconds when searching cattle in `lis-api-cattle` (min 1 ms, max 5 minutes) | no | `60000` |
+| `CattleApi__GetCattleDetailsTimeout` | Timeout in milliseconds when getting cattle details from `lis-api-cattle` (min 1 ms, max 5 minutes) | no | `60000` |
+| `CattleApi__GetUserDetailsTimeout` | Timeout in milliseconds when getting user details from `lis-api-cattle` (min 1 ms, max 5 minutes) | no | `60000` |
+| `CattleApi__CreateUserTimeout` | Timeout in milliseconds when creating a user in `lis-api-cattle` (min 1 ms, max 5 minutes) | no | `60000` |
 | `ApiKeyAuthentication__Keys__0` | Secret. Key callers must send as `x-api-key`. Must equal `CATTLE_HOME_API_KEY` in `lis-apps-cattle-home` | yes | none |
 | `ApiKeyAuthentication__Keys__1` | Secret. Optional second key, so a key can be rotated without downtime | no | none |
 | `ApiKeyAuthentication__HeaderName` | Header that carries the key | no | `x-api-key` |
