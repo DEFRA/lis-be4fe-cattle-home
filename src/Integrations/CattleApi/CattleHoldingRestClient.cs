@@ -43,6 +43,7 @@ public sealed partial class CattleHoldingRestClient(
         {
             var details = await ExecuteAsync("Get holding details", cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/holdings/{segments.ToRoute()}")
+                .WithTimeout(options.GetHoldingDetailsTimeout)
                 .ExecuteAndTransform<CattleApiHoldingDetailed, HoldingDetailedResponse>(holding => ToHoldingDetails(segments, holding)));
 
             LogRetrievedHoldingDetails(segments.ToString());
@@ -68,6 +69,7 @@ public sealed partial class CattleHoldingRestClient(
         {
             var result = await ExecuteAsync("Search holdings", cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/holdings")
+                .WithTimeout(options.SearchHoldingsTimeout)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Search), "Search", query.Search?.Trim() ?? string.Empty)
                 .WithQueryParameter(() => query.Page.HasValue, "Page", query.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
                 .WithQueryParameter(() => query.PageSize.HasValue, "PageSize", query.PageSize?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
@@ -95,6 +97,7 @@ public sealed partial class CattleHoldingRestClient(
         {
             var cattle = await ExecuteAsync("Search cattle on holding", cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/holdings/{segments.ToRoute()}/cattle")
+                .WithTimeout(options.SearchCattleTimeout)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Eartag), "earTag", query.Eartag?.Trim() ?? string.Empty)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Breed), "breed", query.Breed?.Trim() ?? string.Empty)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Sex), "sex", query.Sex?.Trim() ?? string.Empty)
@@ -125,6 +128,7 @@ public sealed partial class CattleHoldingRestClient(
         {
             var details = await ExecuteAsync("Get cattle details", cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/cattle/{Uri.EscapeDataString(trimmedEarTag)}")
+                .WithTimeout(options.GetCattleDetailsTimeout)
                 .ExecuteAndTransform<CattleApiCattleDetails, CattleDetails>(ToCattleDetails));
 
             LogRetrievedCattleDetails(trimmedEarTag);
@@ -149,6 +153,7 @@ public sealed partial class CattleHoldingRestClient(
         {
             var details = await ExecuteAsync("Get user details", cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/users/{Uri.EscapeDataString(trimmedUserId)}")
+                .WithTimeout(options.GetUserDetailsTimeout)
                 .ExecuteAndTransform<CattleApiUserDetails, UserDetails>(user => ToUserDetails(trimmedUserId, user)));
 
             LogRetrievedUserDetails(details.Cphs.Count);
@@ -184,6 +189,7 @@ public sealed partial class CattleHoldingRestClient(
             var details = await ExecuteAsync("Create user", cancellationToken, strategy => strategy
                 .WithPost()
                 .WithResourceUrl($"{ApiVersion}/users")
+                .WithTimeout(options.CreateUserTimeout)
                 .WithPayload(payload)
                 .ExecuteAndTransform<CattleApiUserDetails, UserDetails>(user => ToUserDetails(subject, user)));
 
