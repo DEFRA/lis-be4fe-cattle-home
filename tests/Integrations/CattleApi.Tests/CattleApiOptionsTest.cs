@@ -2,9 +2,10 @@
 // Copyright (c) Defra. All rights reserved.
 // </copyright>
 
-namespace Defra.Lis.Be4Fe.Api.Tests.CattleApi;
+namespace Defra.Lis.Be4Fe.CattleApi.Tests;
 
 using Defra.Lis.Be4Fe.CattleApi;
+using Microsoft.Extensions.Configuration;
 
 public sealed class CattleApiOptionsTest
 {
@@ -51,5 +52,41 @@ public sealed class CattleApiOptionsTest
         options.GetCattleDetailsTimeout.ShouldBe(4000);
         options.GetUserDetailsTimeout.ShouldBe(5000);
         options.CreateUserTimeout.ShouldBe(6000);
+    }
+
+    [Fact]
+    public void CattleApiOptionsShouldBindFromConfigurationSection()
+    {
+        // Arrange
+        var inMemorySettings = new Dictionary<string, string?>
+        {
+            ["CattleApi:BaseUrl"] = "https://cattle-api.service.gov.uk",
+            ["CattleApi:ApiKey"] = "config-api-key",
+            ["CattleApi:GetHoldingDetailsTimeout"] = "15000",
+            ["CattleApi:SearchHoldingsTimeout"] = "25000",
+            ["CattleApi:SearchCattleTimeout"] = "35000",
+            ["CattleApi:GetCattleDetailsTimeout"] = "45000",
+            ["CattleApi:GetUserDetailsTimeout"] = "55000",
+            ["CattleApi:CreateUserTimeout"] = "65000",
+        };
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+
+        var options = new CattleApiOptions();
+
+        // Act
+        configuration.GetRequiredSection(CattleApiOptions.SectionName).Bind(options);
+
+        // Assert
+        options.BaseUrl.ShouldBe("https://cattle-api.service.gov.uk");
+        options.ApiKey.ShouldBe("config-api-key");
+        options.GetHoldingDetailsTimeout.ShouldBe(15000);
+        options.SearchHoldingsTimeout.ShouldBe(25000);
+        options.SearchCattleTimeout.ShouldBe(35000);
+        options.GetCattleDetailsTimeout.ShouldBe(45000);
+        options.GetUserDetailsTimeout.ShouldBe(55000);
+        options.CreateUserTimeout.ShouldBe(65000);
     }
 }
