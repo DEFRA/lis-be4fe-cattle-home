@@ -41,9 +41,8 @@ public sealed partial class CattleHoldingRestClient(
 
         try
         {
-            var details = await ExecuteAsync("Get holding details", cancellationToken, strategy => strategy
+            var details = await ExecuteAsync("Get holding details", options.GetHoldingDetailsTimeout, cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/holdings/{segments.ToRoute()}")
-                .WithTimeout(options.GetHoldingDetailsTimeout)
                 .ExecuteAndTransform<CattleApiHoldingDetailed, HoldingDetailedResponse>(holding => ToHoldingDetails(segments, holding)));
 
             LogRetrievedHoldingDetails(segments.ToString());
@@ -67,9 +66,8 @@ public sealed partial class CattleHoldingRestClient(
 
         try
         {
-            var result = await ExecuteAsync("Search holdings", cancellationToken, strategy => strategy
+            var result = await ExecuteAsync("Search holdings", options.SearchHoldingsTimeout, cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/holdings")
-                .WithTimeout(options.SearchHoldingsTimeout)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Search), "Search", query.Search?.Trim() ?? string.Empty)
                 .WithQueryParameter(() => query.Page.HasValue, "Page", query.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
                 .WithQueryParameter(() => query.PageSize.HasValue, "PageSize", query.PageSize?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
@@ -95,9 +93,8 @@ public sealed partial class CattleHoldingRestClient(
 
         try
         {
-            var cattle = await ExecuteAsync("Search cattle on holding", cancellationToken, strategy => strategy
+            var cattle = await ExecuteAsync("Search cattle on holding", options.SearchCattleTimeout, cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/holdings/{segments.ToRoute()}/cattle")
-                .WithTimeout(options.SearchCattleTimeout)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Eartag), "earTag", query.Eartag?.Trim() ?? string.Empty)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Breed), "breed", query.Breed?.Trim() ?? string.Empty)
                 .WithQueryParameter(() => !string.IsNullOrWhiteSpace(query.Sex), "sex", query.Sex?.Trim() ?? string.Empty)
@@ -126,9 +123,8 @@ public sealed partial class CattleHoldingRestClient(
 
         try
         {
-            var details = await ExecuteAsync("Get cattle details", cancellationToken, strategy => strategy
+            var details = await ExecuteAsync("Get cattle details", options.GetCattleDetailsTimeout, cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/cattle/{Uri.EscapeDataString(trimmedEarTag)}")
-                .WithTimeout(options.GetCattleDetailsTimeout)
                 .ExecuteAndTransform<CattleApiCattleDetails, CattleDetails>(ToCattleDetails));
 
             LogRetrievedCattleDetails(trimmedEarTag);
@@ -151,9 +147,8 @@ public sealed partial class CattleHoldingRestClient(
 
         try
         {
-            var details = await ExecuteAsync("Get user details", cancellationToken, strategy => strategy
+            var details = await ExecuteAsync("Get user details", options.GetUserDetailsTimeout, cancellationToken, strategy => strategy
                 .WithResourceUrl($"{ApiVersion}/users/{Uri.EscapeDataString(trimmedUserId)}")
-                .WithTimeout(options.GetUserDetailsTimeout)
                 .ExecuteAndTransform<CattleApiUserDetails, UserDetails>(user => ToUserDetails(trimmedUserId, user)));
 
             LogRetrievedUserDetails(details.Cphs.Count);
@@ -186,10 +181,9 @@ public sealed partial class CattleHoldingRestClient(
 
         try
         {
-            var details = await ExecuteAsync("Create user", cancellationToken, strategy => strategy
+            var details = await ExecuteAsync("Create user", options.CreateUserTimeout, cancellationToken, strategy => strategy
                 .WithPost()
                 .WithResourceUrl($"{ApiVersion}/users")
-                .WithTimeout(options.CreateUserTimeout)
                 .WithPayload(payload)
                 .ExecuteAndTransform<CattleApiUserDetails, UserDetails>(user => ToUserDetails(subject, user)));
 
@@ -403,17 +397,18 @@ public sealed partial class CattleHoldingRestClient(
         (exception.InnerException is HttpRequestException or OperationCanceledException) && !cancellationToken.IsCancellationRequested;
 
     /// <summary>
-    /// Builds the strategy for <paramref name="action"/> and runs <paramref name="execute"/> against it, turning an
+    /// Builds the strategy for <paramref name="action"/> with <paramref name="timeoutMs"/> and runs <paramref name="execute"/> against it, turning an
     /// unreachable cattle API into a <see cref="ServiceUnavailableException"/> (503) so the caller can retry.
     /// </summary>
     private async Task<TResult> ExecuteAsync<TResult>(
         string action,
+        int timeoutMs,
         CancellationToken cancellationToken,
         Func<IRestStrategy<CattleHoldingRestClient>, Task<TResult>> execute)
     {
         try
         {
-            return await execute(BuildStrategy(action, cancellationToken));
+            return await execute(BuildStrategy(action, timeoutMs, cancellationToken));
         }
         catch (RestRequestException ex) when (IsUnreachable(ex, cancellationToken))
         {
@@ -422,7 +417,7 @@ public sealed partial class CattleHoldingRestClient(
         }
     }
 
-    private IRestStrategy<CattleHoldingRestClient> BuildStrategy(string action, CancellationToken cancellationToken)
+    private IRestStrategy<CattleHoldingRestClient> BuildStrategy(string action, int timeoutMs, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(options.BaseUrl))
         {
@@ -438,6 +433,7 @@ public sealed partial class CattleHoldingRestClient(
             .BuildRestStrategy()
             .WithLogger(logger)
             .WithCancellationToken(cancellationToken)
+            .WithTimeout(timeoutMs)
             .WithApiDescription(ApiDescription)
             .WithActionDescription(action)
             .WithBaseUrl(options.BaseUrl)

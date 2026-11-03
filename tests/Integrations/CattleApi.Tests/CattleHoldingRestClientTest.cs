@@ -1,8 +1,8 @@
-// <copyright file="CattleHoldingRestClientTest.cs" company="Defra">
+﻿// <copyright file="CattleHoldingRestClientTest.cs" company="Defra">
 // Copyright (c) Defra. All rights reserved.
 // </copyright>
 
-namespace Defra.Lis.Be4Fe.Api.Tests.CattleApi;
+namespace Defra.Lis.Be4Fe.CattleApi.Tests;
 
 using System.Net;
 using System.Text.Json;
@@ -12,6 +12,7 @@ using Defra.Livestock.Sdk.Api.Strategies.Abstractions.Exceptions;
 using Defra.Livestock.Sdk.Api.Strategies.Abstractions.Operations.Http.Rest.Client;
 using Defra.Livestock.Sdk.Api.Strategies.Operations;
 using Defra.Livestock.Sdk.Api.Strategies.Operations.Http.Rest.Client;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 public sealed class CattleHoldingRestClientTest
@@ -275,6 +276,7 @@ public sealed class CattleHoldingRestClientTest
         result.TotalPages.ShouldBe(3);
         result.HasNextPage.ShouldBeTrue();
         result.HasPreviousPage.ShouldBeTrue();
+        result.Items.ShouldNotBeNull();
 
         var holding = result.Items.ShouldHaveSingleItem();
         holding.Cph.ShouldBe("22/001/0001");
@@ -833,8 +835,28 @@ public sealed class CattleHoldingRestClientTest
         await Should.ThrowAsync<ServiceUnavailableException>(act);
     }
 
-    [Fact]
-    public async Task ClientShouldNotTreatCallerCancellationAsTheCattleApiBeingUnavailable()
+    [Theory]
+    [MemberData(nameof(CattleApiCalls))]
+    public async Task EveryCall_ThrowsServiceUnavailable_WhenTheCattleApiTimesOut(string call)
+    {
+        // Arrange
+        handler.FailWith(new TaskCanceledException(
+            "The request was canceled due to the configured HttpClient.Timeout.",
+            new TimeoutException()));
+        var client = CreateClient();
+
+        // Act
+        var act = () => Call(client, call, TestContext.Current.CancellationToken);
+
+        // Assert
+        var exception = await Should.ThrowAsync<ServiceUnavailableException>(act);
+        exception.InnerException.ShouldBeOfType<RestRequestException>()
+            .InnerException.ShouldBeOfType<TaskCanceledException>();
+    }
+
+    [Theory]
+    [MemberData(nameof(CattleApiCalls))]
+    public async Task EveryCall_DoesNotTreatCallerCancellationAsUnavailable(string call)
     {
         // Arrange
         using var cancellation = new CancellationTokenSource();
@@ -844,7 +866,7 @@ public sealed class CattleHoldingRestClientTest
 
         // Act
         var exception =
-            await Should.ThrowAsync<Exception>(() => client.GetHoldingDetailsAsync("22/001/0001", cancellation.Token));
+            await Should.ThrowAsync<Exception>(() => Call(client, call, cancellation.Token));
 
         // Assert
         exception.ShouldNotBeOfType<ServiceUnavailableException>();
@@ -907,6 +929,413 @@ public sealed class CattleHoldingRestClientTest
         handler.Requests.ShouldHaveSingleItem();
     }
 
+    [Fact]
+    public async Task GetHoldingDetailsAsync_UsesConfiguredTimeout()
+    {
+        // Arrange
+        handler.RespondWith(HttpStatusCode.OK, OakfieldHolding);
+        var options = new CattleApiOptions
+        {
+            BaseUrl = "http://cattle-api.test/",
+            ApiKey = "key",
+            GetHoldingDetailsTimeout = 1234,
+        };
+        var client = CreateClient(options);
+
+        // Act
+        var result = await client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldNotBeNull();
+        handler.Requests.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task SearchHoldingsAsync_UsesConfiguredTimeout()
+    {
+        // Arrange
+        handler.RespondWith(HttpStatusCode.OK, PaginatedHoldings);
+        var options = new CattleApiOptions
+        {
+            BaseUrl = "http://cattle-api.test/",
+            ApiKey = "key",
+            SearchHoldingsTimeout = 2345,
+        };
+        var client = CreateClient(options);
+
+        // Act
+        var result = await client.SearchHoldingsAsync(new HoldingSearchQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldNotBeNull();
+        handler.Requests.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task SearchCattleAsync_UsesConfiguredTimeout()
+    {
+        // Arrange
+        handler.RespondWith(HttpStatusCode.OK, TwoCattle);
+        var options = new CattleApiOptions
+        {
+            BaseUrl = "http://cattle-api.test/",
+            ApiKey = "key",
+            SearchCattleTimeout = 3456,
+        };
+        var client = CreateClient(options);
+
+        // Act
+        var result = await client.SearchCattleAsync("22/001/0001", new CattleSearchQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldNotBeNull();
+        handler.Requests.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task GetCattleDetailsAsync_UsesConfiguredTimeout()
+    {
+        // Arrange
+        handler.RespondWith(HttpStatusCode.OK, OakfieldAnimal);
+        var options = new CattleApiOptions
+        {
+            BaseUrl = "http://cattle-api.test/",
+            ApiKey = "key",
+            GetCattleDetailsTimeout = 4567,
+        };
+        var client = CreateClient(options);
+
+        // Act
+        var result = await client.GetCattleDetailsAsync("UK200000000001", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldNotBeNull();
+        handler.Requests.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task GetUserDetailsAsync_UsesConfiguredTimeout()
+    {
+        // Arrange
+        handler.RespondWith(HttpStatusCode.OK, TestUser);
+        var options = new CattleApiOptions
+        {
+            BaseUrl = "http://cattle-api.test/",
+            ApiKey = "key",
+            GetUserDetailsTimeout = 5678,
+        };
+        var client = CreateClient(options);
+
+        // Act
+        var result = await client.GetUserDetailsAsync("user-id", TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldNotBeNull();
+        handler.Requests.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_UsesConfiguredTimeout()
+    {
+        // Arrange
+        handler.RespondWith(HttpStatusCode.OK, TestUser);
+        var options = new CattleApiOptions
+        {
+            BaseUrl = "http://cattle-api.test/",
+            ApiKey = "key",
+            CreateUserTimeout = 6789,
+        };
+        var client = CreateClient(options);
+
+        // Act
+        var result = await client.CreateUserAsync(
+            TestClaims(),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldNotBeNull();
+        handler.Requests.ShouldHaveSingleItem();
+    }
+
+    [Theory]
+    [MemberData(nameof(CattleApiCalls))]
+    public async Task EveryCall_ThrowsServiceUnavailable_WhenResponseExceedsConfiguredTimeout(string call)
+    {
+        // Arrange: Configure a very short timeout and delay the stub response past the timeout
+        handler.RespondWithDelay(TimeSpan.FromMilliseconds(500), HttpStatusCode.OK, "{}");
+        var options = new CattleApiOptions
+        {
+            BaseUrl = "http://cattle-api.test/",
+            ApiKey = "key",
+            GetHoldingDetailsTimeout = 10,
+            SearchHoldingsTimeout = 10,
+            SearchCattleTimeout = 10,
+            GetCattleDetailsTimeout = 10,
+            GetUserDetailsTimeout = 10,
+            CreateUserTimeout = 10,
+        };
+        var client = CreateClient(options);
+
+        // Act & Assert
+        await Should.ThrowAsync<ServiceUnavailableException>(() =>
+            Call(client, call, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task GetHoldingDetails_MapsResponseWithMissingOptionalFields()
+    {
+        // Arrange
+        const string sparseHolding = """
+                                     {
+                                       "cph": null,
+                                       "name": "Sparse Holding",
+                                       "holdingType": null,
+                                       "keeperName": null,
+                                       "startDate": null,
+                                       "endDate": null,
+                                       "active": false,
+                                       "address": null,
+                                       "herdMarks": [
+                                         {
+                                           "mark": "UK 123456",
+                                           "startDate": null,
+                                           "endDate": null,
+                                           "species": null
+                                         }
+                                       ],
+                                       "allowedSpecies": null,
+                                       "associations": [
+                                         {
+                                           "customerNumber": null,
+                                           "title": null,
+                                           "firstName": null,
+                                           "lastName": null,
+                                           "name": null,
+                                           "partyType": null,
+                                           "email": null,
+                                           "mobile": null,
+                                           "telephone": null,
+                                           "address": null,
+                                           "roles": [
+                                             {
+                                               "code": "OWNER",
+                                               "species": null
+                                             }
+                                           ]
+                                         }
+                                       ]
+                                     }
+                                     """;
+
+        handler.RespondWith(HttpStatusCode.OK, sparseHolding);
+        var client = CreateClient();
+
+        // Act
+        var details = await client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken);
+
+        // Assert
+        details.Cph.ShouldBe("22/001/0001");
+        details.Address.ShouldBeEmpty();
+        details.AllowedSpecies.ShouldBeEmpty();
+        var mark = details.HerdMarks.ShouldHaveSingleItem();
+        mark.Species.ShouldBeEmpty();
+        var association = details.Associations.ShouldHaveSingleItem();
+        association.Address.ShouldBeEmpty();
+        var role = association.Roles.ShouldHaveSingleItem();
+        role.Species.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task GetHoldingDetails_MapsResponseWithNullCollections()
+    {
+        // Arrange
+        const string minimalHolding = """
+                                      {
+                                        "cph": "22/001/0001",
+                                        "name": "Minimal Holding",
+                                        "herdMarks": null,
+                                        "allowedSpecies": null,
+                                        "associations": null
+                                      }
+                                      """;
+
+        handler.RespondWith(HttpStatusCode.OK, minimalHolding);
+        var client = CreateClient();
+
+        // Act
+        var details = await client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken);
+
+        // Assert
+        details.HerdMarks.ShouldBeEmpty();
+        details.AllowedSpecies.ShouldBeEmpty();
+        details.Associations.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task GetCattleDetails_MapsResponseWithSparseFieldsAndDeathLocation()
+    {
+        // Arrange
+        const string sparseAnimalWithDeath = """
+                                             {
+                                               "earTag": null,
+                                               "species": null,
+                                               "sex": null,
+                                               "breed": "Charolais",
+                                               "breedCode": null,
+                                               "breedName": null,
+                                               "currentLocation": null,
+                                               "registeredLocation": null,
+                                               "deathLocation": {
+                                                 "identifier": "22/003/0003",
+                                                 "subIdentifier": "sub3",
+                                                 "fullIdentifier": "22/003/0003/sub3",
+                                                 "name": "Abattoir",
+                                                 "premisesType": "Slaughterhouse"
+                                               }
+                                             }
+                                             """;
+
+        handler.RespondWith(HttpStatusCode.OK, sparseAnimalWithDeath);
+        var client = CreateClient();
+
+        // Act
+        var details = await client.GetCattleDetailsAsync("UK200000000001", TestContext.Current.CancellationToken);
+
+        // Assert
+        details.Eartag.ShouldBe(string.Empty);
+        details.CattleId.ShouldBe(string.Empty);
+        details.BreedName.ShouldBe("Charolais");
+        details.CurrentLocation.ShouldBeNull();
+        details.RegisteredLocation.ShouldBeNull();
+        details.DeathLocation.ShouldNotBeNull();
+        details.DeathLocation.Identifier.ShouldBe("22/003/0003");
+        details.DeathLocation.SubIdentifier.ShouldBe("sub3");
+        details.DeathLocation.FullIdentifier.ShouldBe("22/003/0003/sub3");
+        details.DeathLocation.Name.ShouldBe("Abattoir");
+        details.DeathLocation.PremisesType.ShouldBe("Slaughterhouse");
+    }
+
+    [Fact]
+    public async Task GetUserDetails_MapsUserWithSparseFieldsAndNullCphs()
+    {
+        // Arrange
+        const string sparseUser = """
+                                  {
+                                    "subject": null,
+                                    "email": null,
+                                    "firstName": null,
+                                    "lastName": null,
+                                    "displayName": null,
+                                    "cphs": null
+                                  }
+                                  """;
+
+        handler.RespondWith(HttpStatusCode.OK, sparseUser);
+        var client = CreateClient();
+
+        // Act
+        var user = await client.GetUserDetailsAsync("fallback-user-id", TestContext.Current.CancellationToken);
+
+        // Assert
+        user.Subject.ShouldBe("fallback-user-id");
+        user.Cphs.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task SearchHoldings_MapsResponseWithNullFields()
+    {
+        // Arrange
+        const string sparseHoldingsResponse = """
+                                              {
+                                                "count": 1,
+                                                "totalCount": 1,
+                                                "items": [
+                                                  {
+                                                    "cph": null,
+                                                    "name": "Sparse Holding",
+                                                    "address": null
+                                                  }
+                                                ]
+                                              }
+                                              """;
+
+        handler.RespondWith(HttpStatusCode.OK, sparseHoldingsResponse);
+        var client = CreateClient();
+
+        // Act
+        var result = await client.SearchHoldingsAsync(new HoldingSearchQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var item = result.Items.ShouldHaveSingleItem();
+        item.Cph.ShouldBe(string.Empty);
+        item.Address.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task SearchHoldings_MapsResponseWithNullItems()
+    {
+        // Arrange
+        const string nullItemsResponse = """
+                                         {
+                                           "count": 0,
+                                           "totalCount": 0,
+                                           "items": null
+                                         }
+                                         """;
+
+        handler.RespondWith(HttpStatusCode.OK, nullItemsResponse);
+        var client = CreateClient();
+
+        // Act
+        var result = await client.SearchHoldingsAsync(new HoldingSearchQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Items.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task SearchCattle_MapsAnimalsWithSparseAndNullFields()
+    {
+        // Arrange
+        const string sparseCattleList = """
+                                        [
+                                          {
+                                            "earTag": null,
+                                            "breed": null,
+                                            "breedCode": null,
+                                            "breedName": "Hereford",
+                                            "sex": null,
+                                            "status": null
+                                          },
+                                          {
+                                            "earTag": null,
+                                            "breed": null,
+                                            "breedCode": null,
+                                            "breedName": null,
+                                            "sex": null,
+                                            "status": null
+                                          }
+                                        ]
+                                        """;
+
+        handler.RespondWith(HttpStatusCode.OK, sparseCattleList);
+        var client = CreateClient();
+
+        // Act
+        var cattle = await client.SearchCattleAsync("22/001/0001", new CattleSearchQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        cattle.Count.ShouldBe(2);
+        var first = cattle.First();
+        first.Eartag.ShouldBe(string.Empty);
+        first.Breed.ShouldBe("Hereford");
+        first.Sex.ShouldBe(string.Empty);
+        first.Status.ShouldBe(string.Empty);
+
+        var second = cattle.Last();
+        second.Breed.ShouldBe(string.Empty);
+    }
+
     private static Task Call(CattleHoldingRestClient client, string call, CancellationToken cancellationToken) =>
         call switch
         {
@@ -939,7 +1368,24 @@ public sealed class CattleHoldingRestClientTest
     {
         var factory = new RestStrategyFactory<CattleHoldingRestClient>(new StubServiceProvider(handler));
 
-        return new CattleHoldingRestClient(factory, options, NullLogger<CattleHoldingRestClient>.Instance);
+        return new CattleHoldingRestClient(factory, options, new TestLogger<CattleHoldingRestClient>());
+    }
+
+    private sealed class TestLogger<T> : ILogger<T>
+    {
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+        }
     }
 
     /// <summary>
