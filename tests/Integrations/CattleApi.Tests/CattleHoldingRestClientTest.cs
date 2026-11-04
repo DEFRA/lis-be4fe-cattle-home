@@ -117,25 +117,22 @@ public sealed class CattleHoldingRestClientTest
         var request = handler.Requests.ShouldHaveSingleItem();
         request.Method.ShouldBe(HttpMethod.Get);
         request.RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/holdings/22/001/0001");
-        request.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldBe(["test-key"]);
+        request.Headers.GetValues("x-api-key").ShouldBe(["test-key"]);
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData(" ")]
-    public async Task ClientShouldFailClearlyWhenTheApiKeyIsNotConfigured(string? apiKey)
+    public Task ClientShouldFailClearlyWhenTheApiKeyIsNotConfigured(string? apiKey)
     {
-        // Arrange
-        var client = CreateClient(apiKey: apiKey);
-
         // Act
-        var exception = await Should.ThrowAsync<InvalidOperationException>(() =>
-            client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
+        var exception = Should.Throw<InvalidOperationException>(() => CreateClient(apiKey: apiKey));
 
         // Assert
         exception.Message.ShouldContain("CattleApi:ApiKey");
         handler.Requests.ShouldBeEmpty();
+        return Task.CompletedTask;
     }
 
     [Theory]
@@ -434,7 +431,7 @@ public sealed class CattleHoldingRestClientTest
         var request = handler.Requests.ShouldHaveSingleItem();
         request.Method.ShouldBe(HttpMethod.Get);
         request.RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/cattle/UK200000000001");
-        request.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldBe(["test-key"]);
+        request.Headers.GetValues("x-api-key").ShouldBe(["test-key"]);
     }
 
     [Fact]
@@ -571,7 +568,7 @@ public sealed class CattleHoldingRestClientTest
         request.Method.ShouldBe(HttpMethod.Get);
         request.RequestUri!.AbsoluteUri.ShouldBe(
             "http://cattle-api.test/v1/users/0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
-        request.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldBe(["test-key"]);
+        request.Headers.GetValues("x-api-key").ShouldBe(["test-key"]);
     }
 
     [Fact]
@@ -691,18 +688,15 @@ public sealed class CattleHoldingRestClientTest
     }
 
     [Fact]
-    public async Task ClientShouldFailClearlyWhenTheBaseUrlIsNotConfigured()
+    public Task ClientShouldFailClearlyWhenTheBaseUrlIsNotConfigured()
     {
-        // Arrange
-        var client = CreateClient(baseUrl: string.Empty);
-
         // Act
-        var exception = await Should.ThrowAsync<InvalidOperationException>(() =>
-            client.GetHoldingDetailsAsync("22/001/0001", TestContext.Current.CancellationToken));
+        var exception = Should.Throw<InvalidOperationException>(() => CreateClient(baseUrl: string.Empty));
 
         // Assert
         exception.Message.ShouldContain("CattleApi:BaseUrl");
         handler.Requests.ShouldBeEmpty();
+        return Task.CompletedTask;
     }
 
     [Fact]
@@ -719,7 +713,7 @@ public sealed class CattleHoldingRestClientTest
         var request = handler.Requests.ShouldHaveSingleItem();
         request.Method.ShouldBe(HttpMethod.Post);
         request.RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/users");
-        request.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldHaveSingleItem().ShouldBe("test-key");
+        request.Headers.GetValues("x-api-key").ShouldHaveSingleItem().ShouldBe("test-key");
         using var body = JsonDocument.Parse(handler.RequestBodies.ShouldHaveSingleItem()!);
         body.RootElement.GetProperty("sub").GetString().ShouldBe("0b6f2f0e-3c1a-4e8e-9d4b-2f6a1c9e7d51");
         body.RootElement.GetProperty("email").GetString().ShouldBe("test.keeper@example.com");
@@ -936,9 +930,7 @@ public sealed class CattleHoldingRestClientTest
         handler.RespondWith(HttpStatusCode.OK, OakfieldHolding);
         var options = new CattleApiOptions
         {
-            BaseUrl = "http://cattle-api.test/",
-            ApiKey = "key",
-            GetHoldingDetailsTimeout = 1234,
+            BaseUrl = "http://cattle-api.test/", ApiKey = "key", GetHoldingDetailsTimeout = 1234,
         };
         var client = CreateClient(options);
 
@@ -957,9 +949,7 @@ public sealed class CattleHoldingRestClientTest
         handler.RespondWith(HttpStatusCode.OK, PaginatedHoldings);
         var options = new CattleApiOptions
         {
-            BaseUrl = "http://cattle-api.test/",
-            ApiKey = "key",
-            SearchHoldingsTimeout = 2345,
+            BaseUrl = "http://cattle-api.test/", ApiKey = "key", SearchHoldingsTimeout = 2345,
         };
         var client = CreateClient(options);
 
@@ -978,14 +968,15 @@ public sealed class CattleHoldingRestClientTest
         handler.RespondWith(HttpStatusCode.OK, TwoCattle);
         var options = new CattleApiOptions
         {
-            BaseUrl = "http://cattle-api.test/",
-            ApiKey = "key",
-            SearchCattleTimeout = 3456,
+            BaseUrl = "http://cattle-api.test/", ApiKey = "key", SearchCattleTimeout = 3456,
         };
         var client = CreateClient(options);
 
         // Act
-        var result = await client.SearchCattleAsync("22/001/0001", new CattleSearchQuery(), TestContext.Current.CancellationToken);
+        var result = await client.SearchCattleAsync(
+            "22/001/0001",
+            new CattleSearchQuery(),
+            TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -999,9 +990,7 @@ public sealed class CattleHoldingRestClientTest
         handler.RespondWith(HttpStatusCode.OK, OakfieldAnimal);
         var options = new CattleApiOptions
         {
-            BaseUrl = "http://cattle-api.test/",
-            ApiKey = "key",
-            GetCattleDetailsTimeout = 4567,
+            BaseUrl = "http://cattle-api.test/", ApiKey = "key", GetCattleDetailsTimeout = 4567,
         };
         var client = CreateClient(options);
 
@@ -1020,9 +1009,7 @@ public sealed class CattleHoldingRestClientTest
         handler.RespondWith(HttpStatusCode.OK, TestUser);
         var options = new CattleApiOptions
         {
-            BaseUrl = "http://cattle-api.test/",
-            ApiKey = "key",
-            GetUserDetailsTimeout = 5678,
+            BaseUrl = "http://cattle-api.test/", ApiKey = "key", GetUserDetailsTimeout = 5678,
         };
         var client = CreateClient(options);
 
@@ -1041,9 +1028,7 @@ public sealed class CattleHoldingRestClientTest
         handler.RespondWith(HttpStatusCode.OK, TestUser);
         var options = new CattleApiOptions
         {
-            BaseUrl = "http://cattle-api.test/",
-            ApiKey = "key",
-            CreateUserTimeout = 6789,
+            BaseUrl = "http://cattle-api.test/", ApiKey = "key", CreateUserTimeout = 6789,
         };
         var client = CreateClient(options);
 
@@ -1322,7 +1307,10 @@ public sealed class CattleHoldingRestClientTest
         var client = CreateClient();
 
         // Act
-        var cattle = await client.SearchCattleAsync("22/001/0001", new CattleSearchQuery(), TestContext.Current.CancellationToken);
+        var cattle = await client.SearchCattleAsync(
+            "22/001/0001",
+            new CattleSearchQuery(),
+            TestContext.Current.CancellationToken);
 
         // Assert
         cattle.Count.ShouldBe(2);
