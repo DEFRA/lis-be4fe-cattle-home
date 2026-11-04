@@ -34,6 +34,8 @@ public sealed class StubHttpMessageHandler : HttpMessageHandler
     /// <summary>
     /// Fails the next request with <paramref name="exception"/>, as the transport does when the server cannot be reached.
     /// </summary>
+    /// <param name="exception">The exception the request fails with.</param>
+    /// <returns>This handler, to queue further responses.</returns>
     public StubHttpMessageHandler FailWith(Exception exception)
     {
         responses.Enqueue(_ => throw exception);
@@ -44,10 +46,13 @@ public sealed class StubHttpMessageHandler : HttpMessageHandler
     /// <summary>
     /// Holds the next request open until it is cancelled, as a hung cattle API does.
     /// </summary>
-    public StubHttpMessageHandler Hang()
+    /// <param name="received">Runs once the request reaches the handler, so a test can cancel it at that point.</param>
+    /// <returns>This handler, to queue further responses.</returns>
+    public StubHttpMessageHandler Hang(Action? received = null)
     {
         responses.Enqueue(async cancellationToken =>
         {
+            received?.Invoke();
             await Task.Delay(Timeout.Infinite, cancellationToken);
             throw new InvalidOperationException("Unreachable: the delay only ends by cancellation.");
         });

@@ -154,12 +154,14 @@ public sealed class CattleApiHttpClientTest : IDisposable
     [Fact]
     public async Task CallerCancellationShouldNotOpenTheCircuit()
     {
-        handler.Hang().Hang().RespondWith(HttpStatusCode.OK, Holding);
+        // Each call is cancelled once its request reaches the cattle API, so the cancellation never races the request.
+        using var first = new CancellationTokenSource();
+        using var second = new CancellationTokenSource();
+        handler.Hang(first.Cancel).Hang(second.Cancel).RespondWith(HttpStatusCode.OK, Holding);
         var client = CreateClient(new CattleApiOptions { CircuitBreakerFailureThreshold = 2 });
 
-        for (var i = 0; i < 2; i++)
+        foreach (var cancellation in new[] { first, second })
         {
-            using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
             var exception = await Should.ThrowAsync<Exception>(() => client.GetHoldingDetailsAsync(Cph, cancellation.Token));
             exception.ShouldNotBeOfType<ServiceUnavailableException>();
         }
