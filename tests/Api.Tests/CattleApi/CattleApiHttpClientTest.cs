@@ -31,22 +31,25 @@ public sealed class CattleApiHttpClientTest : IDisposable
     private const string CorrelationId = "corr-resilience";
     private const string Holding = """{"cph":"22/001/0001","name":"Oakfield Farm","active":true}""";
 
+    // Rows are keyed by name, not by exception instance, so xUnit can serialise and list each one (xUnit1045).
+    private static readonly Dictionary<string, Func<Exception>> Failures = new()
+    {
+        [nameof(HttpRequestException)] = () => new HttpRequestException("Connection refused (cattle-api.test:80)"),
+        [nameof(TimeoutRejectedException)] = () => new TimeoutRejectedException(),
+        [nameof(OperationCanceledException)] = () => new OperationCanceledException(),
+        [nameof(BrokenCircuitException)] = () => new BrokenCircuitException(),
+        [nameof(InvalidOperationException)] = () => new InvalidOperationException(),
+    };
+
     private readonly StubHttpMessageHandler handler = new();
     private readonly CapturingLoggerProvider logs = new();
     private ServiceProvider? provider;
 
-    public static TheoryData<Exception> FailuresWithoutResponse => new()
-    {
-        new HttpRequestException("Connection refused (cattle-api.test:80)"),
-        new TimeoutRejectedException(),
-    };
+    public static TheoryData<string> FailuresWithoutResponse =>
+        [nameof(HttpRequestException), nameof(TimeoutRejectedException)];
 
-    public static TheoryData<Exception> FailuresThatDoNotCount => new()
-    {
-        new OperationCanceledException(),
-        new BrokenCircuitException(),
-        new InvalidOperationException(),
-    };
+    public static TheoryData<string> FailuresThatDoNotCount =>
+        [nameof(OperationCanceledException), nameof(BrokenCircuitException), nameof(InvalidOperationException)];
 
     public void Dispose() => provider?.Dispose();
 
@@ -183,13 +186,13 @@ public sealed class CattleApiHttpClientTest : IDisposable
 
     [Theory]
     [MemberData(nameof(FailuresWithoutResponse))]
-    public void FailuresWithoutAResponseShouldCountTowardsOpeningTheCircuit(Exception failure) =>
-        CattleApiHttpClient.IsFailureWithoutResponse(Polly.Outcome.FromException<HttpResponseMessage>(failure)).ShouldBeTrue();
+    public void FailuresWithoutAResponseShouldCountTowardsOpeningTheCircuit(string failure) =>
+        CattleApiHttpClient.IsFailureWithoutResponse(Polly.Outcome.FromException<HttpResponseMessage>(Failures[failure]())).ShouldBeTrue();
 
     [Theory]
     [MemberData(nameof(FailuresThatDoNotCount))]
-    public void OtherFailuresShouldNotCountTowardsOpeningTheCircuit(Exception failure) =>
-        CattleApiHttpClient.IsFailureWithoutResponse(Polly.Outcome.FromException<HttpResponseMessage>(failure)).ShouldBeFalse();
+    public void OtherFailuresShouldNotCountTowardsOpeningTheCircuit(string failure) =>
+        CattleApiHttpClient.IsFailureWithoutResponse(Polly.Outcome.FromException<HttpResponseMessage>(Failures[failure]())).ShouldBeFalse();
 
     [Theory]
     [InlineData(HttpStatusCode.InternalServerError)]
