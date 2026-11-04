@@ -13,6 +13,8 @@ using Defra.Livestock.Sdk.Api.Strategies.Abstractions.Operations.Http.Rest.Clien
 using Defra.Livestock.Sdk.Api.Strategies.Operations;
 using Defra.Livestock.Sdk.Api.Strategies.Operations.Http.Rest.Client;
 using Microsoft.Extensions.Logging.Abstractions;
+using Polly.CircuitBreaker;
+using Polly.Timeout;
 
 public sealed class CattleHoldingRestClientTest
 {
@@ -85,6 +87,8 @@ public sealed class CattleHoldingRestClientTest
         new HttpRequestException("Connection refused (cattle-api.test:80)", new System.Net.Sockets.SocketException(111)),
         new HttpRequestException("Name or service not known (cattle-api.test:80)"),
         new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.", new TimeoutException()),
+        new TimeoutRejectedException("The operation didn't complete within the allowed timeout of '00:00:04'."),
+        new BrokenCircuitException("The circuit is now open and is not allowing calls."),
     };
 
     public static TheoryData<string> CattleApiCalls => new()
@@ -96,6 +100,19 @@ public sealed class CattleHoldingRestClientTest
         "user details",
         "create user",
     };
+
+    public static TheoryData<string, HttpStatusCode> CattleApiCallsAnsweredUnavailable()
+    {
+        var data = new TheoryData<string, HttpStatusCode>();
+
+        foreach (var call in new[] { "holding details", "holding search", "cattle search", "cattle details", "user details", "create user" })
+        {
+            data.Add(call, HttpStatusCode.ServiceUnavailable);
+            data.Add(call, HttpStatusCode.GatewayTimeout);
+        }
+
+        return data;
+    }
 
     [Fact]
     public async Task GetHoldingDetailsShouldCallTheCattleApiWithTheApiKey()
@@ -665,6 +682,19 @@ public sealed class CattleHoldingRestClientTest
         var client = CreateClient();
 
         await Should.ThrowAsync<ServiceUnavailableException>(() => Call(client, call, TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [MemberData(nameof(CattleApiCallsAnsweredUnavailable))]
+    public async Task EveryCall_ThrowsServiceUnavailable_WhenTheCattleApiAnswersUnavailable(string call, HttpStatusCode statusCode)
+    {
+        // The cattle API answers 503 when CADS or KRDS is down, and a gateway answers 504 when the cattle API is slow.
+        handler.RespondWith(statusCode, $$"""{"status":{{(int)statusCode}}}""");
+        var client = CreateClient();
+
+        var exception = await Should.ThrowAsync<ServiceUnavailableException>(() => Call(client, call, TestContext.Current.CancellationToken));
+
+        exception.InnerException.ShouldBeOfType<RestResponseException>();
     }
 
     [Fact]

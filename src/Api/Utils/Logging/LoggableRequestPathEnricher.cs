@@ -27,6 +27,9 @@ public sealed class LoggableRequestPathEnricher(IHttpContextAccessor httpContext
         var httpContext = httpContextAccessor.HttpContext;
         if (httpContext is null)
         {
+            // No request is in progress, yet work started inside one (such as the cattle API circuit breaker's
+            // callbacks, which Polly runs on its own task) still carries that request's hosting scope and its raw path.
+            logEvent.RemovePropertyIfPresent(PropertyName);
             return;
         }
 

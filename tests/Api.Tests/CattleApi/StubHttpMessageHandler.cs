@@ -12,7 +12,7 @@ using System.Text;
 /// </summary>
 public sealed class StubHttpMessageHandler : HttpMessageHandler
 {
-    private readonly Queue<Func<HttpResponseMessage>> responses = new();
+    private readonly Queue<Func<CancellationToken, Task<HttpResponseMessage>>> responses = new();
 
     public List<HttpRequestMessage> Requests { get; } = [];
 
@@ -23,10 +23,10 @@ public sealed class StubHttpMessageHandler : HttpMessageHandler
 
     public StubHttpMessageHandler RespondWith(HttpStatusCode statusCode, string? json = null)
     {
-        responses.Enqueue(() => new HttpResponseMessage(statusCode)
+        responses.Enqueue(_ => Task.FromResult(new HttpResponseMessage(statusCode)
         {
             Content = json is null ? null : new StringContent(json, Encoding.UTF8, "application/json"),
-        });
+        }));
 
         return this;
     }
@@ -36,7 +36,21 @@ public sealed class StubHttpMessageHandler : HttpMessageHandler
     /// </summary>
     public StubHttpMessageHandler FailWith(Exception exception)
     {
-        responses.Enqueue(() => throw exception);
+        responses.Enqueue(_ => throw exception);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Holds the next request open until it is cancelled, as a hung cattle API does.
+    /// </summary>
+    public StubHttpMessageHandler Hang()
+    {
+        responses.Enqueue(async cancellationToken =>
+        {
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            throw new InvalidOperationException("Unreachable: the delay only ends by cancellation.");
+        });
 
         return this;
     }
@@ -51,6 +65,6 @@ public sealed class StubHttpMessageHandler : HttpMessageHandler
             throw new InvalidOperationException($"No stub response queued for {request.Method} {request.RequestUri}");
         }
 
-        return responses.Dequeue()();
+        return await responses.Dequeue()(cancellationToken);
     }
 }
