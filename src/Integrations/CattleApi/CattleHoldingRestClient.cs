@@ -164,6 +164,11 @@ public sealed partial class CattleHoldingRestClient(
         {
             throw new ArgumentException("The cattle API rejected the user id.", nameof(userId), ex);
         }
+        catch (RestResponseException ex) when (HasStatus(ex, HttpStatusCode.ServiceUnavailable))
+        {
+            LogCattleApiUnavailable("Get user details");
+            throw new ServiceUnavailableException("The user account service is temporarily unavailable, try again later.", ex);
+        }
     }
 
     public async Task<UserDetails> CreateUserAsync(CreateUserRequest request, CancellationToken cancellationToken = default)
@@ -194,6 +199,11 @@ public sealed partial class CattleHoldingRestClient(
         {
             LogUserConflict();
             throw new UserConflictException(subject);
+        }
+        catch (RestResponseException ex) when (HasStatus(ex, HttpStatusCode.ServiceUnavailable))
+        {
+            LogCattleApiUnavailable("Create user");
+            throw new ServiceUnavailableException("The user account service is temporarily unavailable, try again later.", ex);
         }
     }
 
@@ -381,22 +391,14 @@ public sealed partial class CattleHoldingRestClient(
     private static bool HasStatus(RestResponseException exception, HttpStatusCode statusCode) =>
         exception.InnerException is HttpRequestException { StatusCode: { } actual } && actual == statusCode;
 
-    // The SDK wraps anything the HTTP client throws before a response arrives in a RestRequestException: a transport
-    // failure (connection refused, DNS failure), the HttpClient timeout, or the resilience pipeline's timeout or open
-    // circuit (CattleApiHttpClient). None of these produced a response, so the cattle API is unavailable. A cancelled
-    // caller token is the caller giving up, not the cattle API being unavailable, so it is left alone.
+    // The SDK wraps a transport failure (connection refused, DNS failure, timeout) in a RestRequestException. A
+    // cancelled caller token is the caller giving up, not the cattle API being unavailable, so it is left alone.
     private static bool IsUnreachable(RestRequestException exception, CancellationToken cancellationToken) =>
-        exception.InnerException is not null && !cancellationToken.IsCancellationRequested;
-
-    // The cattle API answers 503 when it or a service behind it (CADS, KRDS) is unavailable, and a gateway in between
-    // answers 504 when the cattle API is too slow. Both are retryable, so both surface as 503.
-    private static bool IsUnavailable(RestResponseException exception) =>
-        HasStatus(exception, HttpStatusCode.ServiceUnavailable) || HasStatus(exception, HttpStatusCode.GatewayTimeout);
+        (exception.InnerException is HttpRequestException or OperationCanceledException) && !cancellationToken.IsCancellationRequested;
 
     /// <summary>
     /// Builds the strategy for <paramref name="action"/> and runs <paramref name="execute"/> against it, turning an
-    /// unreachable or unavailable cattle API into a <see cref="ServiceUnavailableException"/> (503) so the caller can
-    /// retry.
+    /// unreachable cattle API into a <see cref="ServiceUnavailableException"/> (503) so the caller can retry.
     /// </summary>
     private async Task<TResult> ExecuteAsync<TResult>(
         string action,
@@ -410,11 +412,6 @@ public sealed partial class CattleHoldingRestClient(
         catch (RestRequestException ex) when (IsUnreachable(ex, cancellationToken))
         {
             LogCattleApiUnreachable(action, ex);
-            throw new ServiceUnavailableException("The cattle API is temporarily unavailable, try again later.", ex);
-        }
-        catch (RestResponseException ex) when (IsUnavailable(ex))
-        {
-            LogCattleApiUnavailable(action);
             throw new ServiceUnavailableException("The cattle API is temporarily unavailable, try again later.", ex);
         }
     }

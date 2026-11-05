@@ -19,11 +19,12 @@ using Defra.Lis.Be4Fe.Api.MetaData;
 using Defra.Lis.Be4Fe.Api.Middleware;
 using Defra.Lis.Be4Fe.Api.Services;
 using Defra.Lis.Be4Fe.Api.Utils;
-using Defra.Lis.Be4Fe.Api.Utils.Http;
 using Defra.Lis.Be4Fe.Api.Utils.Logging;
 using Defra.Lis.Be4Fe.Api.Utils.Mongo;
 using Defra.Lis.Be4Fe.CattleApi;
 using Defra.Livestock.Sdk.Api.Strategies;
+using Defra.Livestock.Sdk.Api.Strategies.Abstractions.Operations.Http.Rest.Client;
+using Defra.Livestock.Sdk.Api.Strategies.Operations.Http.Rest.Client;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
@@ -125,13 +126,12 @@ public class Program
         // Cattle API options are validated when first used, so the service boots (and answers /health)
         // before the base URL and API key are configured.
         services.AddOptions<CattleApiOptions>()
-            .Bind(configuration.GetRequiredSection(CattleApiOptions.SectionName))
-            .ValidateDataAnnotations();
+            .Bind(configuration.GetRequiredSection(CattleApiOptions.SectionName));
         services.AddSingleton(provider => provider.GetRequiredService<IOptions<CattleApiOptions>>().Value);
 
         // Strategies SDK REST client, registered before the factory so it carries header propagation
-        // (x-cdp-request-id), a timeout and a circuit breaker to the cattle API (LREG-508).
-        services.AddCattleApiHttpClient();
+        // (x-cdp-request-id) to the cattle API.
+        services.AddHttpClient<IRestHttpClient, RestHttpClient>().AddHeaderPropagation();
         services.AddRestStrategyFactory<CattleHoldingRestClient>();
         services.AddScoped<ICattleHoldingClient, CattleHoldingRestClient>();
 

@@ -5,7 +5,6 @@
     <IsPackable>False</IsPackable>
     <IsTestProject>true</IsTestProject>
     <NoWarn>$(NoWarn);NU1608</NoWarn>
-    <RunSettingsFilePath>$(MSBuildThisFileDirectory)coverage.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>
