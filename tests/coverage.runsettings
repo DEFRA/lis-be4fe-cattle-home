@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Coverlet settings for `dotnet test -collect:"XPlat Code Coverage"`.
+  The shared Sonar workflow (lis-github-actions dotnet-sonar.yml) reads coverage/**/coverage.opencover.xml, but the
+  collector writes only Cobertura by default, so SonarCloud saw 0% coverage. Write both formats.
+-->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>opencover,cobertura</Format>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

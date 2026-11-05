@@ -28,6 +28,20 @@ hub (front-office or back-office) → lis-apps-cattle-home → this API → lis-
   `Defra.Livestock.Sdk.Api.Strategies` package. Each call carries the `x-api-key` header from
   `CattleApi__ApiKey` and the caller's `x-cdp-request-id`. The call goes straight over the internal CDP
   network, without the outbound proxy. This API does not send or check an AWS STS service token.
+- Timeout and circuit breaker (LREG-508): a cattle API call that has no response headers after
+  `CattleApi__TimeoutSeconds` (4 s) is abandoned, and a response body that stalls is cut off one second later. Both
+  answer `503`. That is inside the cattle-home app's 5 s budget for this API, and longer than the cattle API's own budget
+  for CADS and KRDS, so the cattle API can answer `503` first. When at least `CattleApi__CircuitBreakerFailureThreshold`
+  (5) calls fail without a response (connection refused, DNS failure or timeout), and none succeed, within
+  `CattleApi__CircuitBreakerSamplingSeconds` (30 s), the circuit opens. Calls then answer `503` at once for
+  `CattleApi__CircuitBreakerBreakSeconds` (30 s), after which one probe call is let through to close or reopen it. Any
+  HTTP response, even a 5xx, counts as the cattle API being up. There is no retry; the app decides whether to retry.
+  Each transition is logged: a warning when it opens or a failed probe reopens it, and information when it goes
+  half-open and when it closes. These belong to no request, so they carry no correlation ID; Polly's own
+  `Resilience event occurred` entries (category `Polly`) carry the ID of the call that tripped them.
+  The client uses `Microsoft.Extensions.Http.Resilience` (Polly).
+- Upstream unavailable: a `503` or `504` from the cattle API (CADS or KRDS down, or a gateway timing out) is passed on
+  as `503` for every endpoint, so the app shows its "problem with the service" page and the keeper can try again.
 - Data store: MongoDB (database `lis-be4fe-cattle-home`) holds cached cattle details, kept for
   `Cache__DurationMinutes` minutes. Holding, cattle list and user lookups are not cached.
 
@@ -173,6 +187,10 @@ the CDP portal for every deployed environment.
 | `Mongo__DatabaseName` | MongoDB database name | yes | `lis-be4fe-cattle-home` |
 | `CattleApi__BaseUrl` | Base URL of `lis-api-cattle`. CDP sets it per environment | for lookups | empty (`http://localhost:5019` in Development) |
 | `CattleApi__ApiKey` | Secret. Key sent to `lis-api-cattle` as `x-api-key`. Must match one of that API's `ApiKeyAuthentication__Keys__N` | for lookups | empty |
+| `CattleApi__TimeoutSeconds` | Seconds to wait for the cattle API's response headers (1 to 300). The body gets one second more | no | `4` |
+| `CattleApi__CircuitBreakerFailureThreshold` | Calls that must fail without a response, with none succeeding, before the circuit opens (2 to 1000) | no | `5` |
+| `CattleApi__CircuitBreakerSamplingSeconds` | Window over which those failures are counted (1 to 3600) | no | `30` |
+| `CattleApi__CircuitBreakerBreakSeconds` | Seconds the circuit stays open before one probe call (1 to 3600) | no | `30` |
 | `ApiKeyAuthentication__Keys__0` | Secret. Key callers must send as `x-api-key`. Must equal `CATTLE_HOME_API_KEY` in `lis-apps-cattle-home` | yes | none |
 | `ApiKeyAuthentication__Keys__1` | Secret. Optional second key, so a key can be rotated without downtime | no | none |
 | `ApiKeyAuthentication__HeaderName` | Header that carries the key | no | `x-api-key` |
@@ -188,7 +206,8 @@ With no inbound key configured, the API starts and answers `/health` but rejects
 On CDP, logs go to the console in Elastic Common Schema format. Request paths are logged as the route template
 (for example `/api/users/{userId}`), never the raw path, because the path can carry the Defra ID subject. The
 sources that log raw URLs (ASP.NET Core hosting, `HttpClient` and the SDK REST client) are held at `Warning`
-whatever the configuration says.
+whatever the configuration says. The cattle API client has no `HttpClient` factory loggers at all, because their
+`HTTP GET {Uri}` scope would otherwise attach the raw URL to the timeout and circuit breaker warnings.
 
 ## Running tests
 
