@@ -8,8 +8,8 @@ using Defra.Lis.Be4Fe.Models.Lookups.Models;
 
 /// <summary>
 /// Holding, animal and user lookups passed through to the cattle API. Every member throws
-/// <see cref="ServiceUnavailableException"/> when the cattle API cannot be reached (connection refused, DNS failure,
-/// timeout or an open circuit) or answers 503 or 504 (CADS or KRDS behind it is unavailable), so callers can retry.
+/// <see cref="ServiceUnavailableException"/> when the cattle API cannot be reached (connection refused, DNS failure or
+/// timeout), so callers can retry.
 /// </summary>
 public interface ICattleHoldingClient
 {

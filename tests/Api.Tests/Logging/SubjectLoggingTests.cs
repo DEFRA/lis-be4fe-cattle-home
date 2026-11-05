@@ -15,10 +15,11 @@ using Defra.Lis.Be4Fe.Api.Middleware.Headers;
 using Defra.Lis.Be4Fe.Api.Services;
 using Defra.Lis.Be4Fe.Api.Tests.Authentication;
 using Defra.Lis.Be4Fe.Api.Tests.CattleApi;
-using Defra.Lis.Be4Fe.Api.Utils.Http;
 using Defra.Lis.Be4Fe.Api.Utils.Logging;
 using Defra.Lis.Be4Fe.CattleApi;
 using Defra.Livestock.Sdk.Api.Strategies;
+using Defra.Livestock.Sdk.Api.Strategies.Abstractions.Operations.Http.Rest.Client;
+using Defra.Livestock.Sdk.Api.Strategies.Operations.Http.Rest.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
@@ -106,50 +107,6 @@ public class SubjectLoggingTests
     }
 
     [Fact]
-    public async Task GetUserDetails_LogsNoSubject_WhenTheCattleApiTimesOut()
-    {
-        cattleApi.Hang();
-        await using var app = await StartAppAsync();
-
-        var response = await AuthenticatedClient(app).GetAsync($"/api/users/{Subject}", TestContext.Current.CancellationToken);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
-        AssertRequestLoggedWithRouteTemplate("GET", "/api/users/{userId}");
-        AssertNoEventContainsTheSubject();
-    }
-
-    [Fact]
-    public async Task GetUserDetails_LogsNoSubject_WhenTheCircuitOpens()
-    {
-        cattleApi.FailWith(new HttpRequestException("Connection refused (cattle-api.test:80)"))
-            .FailWith(new HttpRequestException("Connection refused (cattle-api.test:80)"));
-        await using var app = await StartAppAsync();
-        var client = AuthenticatedClient(app);
-
-        for (var i = 0; i < 3; i++)
-        {
-            var response = await client.GetAsync($"/api/users/{Subject}", TestContext.Current.CancellationToken);
-            response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
-        }
-
-        cattleApi.Requests.Count.ShouldBe(2);
-        AssertNoEventContainsTheSubject();
-
-        // The transition belongs to no request, so it must not carry a stale correlation ID or path from one. Polly runs
-        // it off the request path, so it can land just after the last response.
-        var deadline = DateTime.UtcNow.AddSeconds(5);
-        while (!sink.Events.Any(e => e.MessageTemplate.Text.Contains("circuit opened", StringComparison.Ordinal)) && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
-
-        sink.Events.ShouldContain(e => e.Properties.ContainsKey("CorrelationId"));
-        var opened = sink.Events.Where(e => e.MessageTemplate.Text.Contains("circuit opened", StringComparison.Ordinal)).ShouldHaveSingleItem();
-        opened.Properties.ShouldNotContainKey("CorrelationId");
-        opened.Properties.ShouldNotContainKey(LoggableRequestPathEnricher.PropertyName);
-    }
-
-    [Fact]
     public async Task GetUserDetails_LogsNoSubject_WhenTheCorrelationIdIsMissing()
     {
         await using var app = await StartAppAsync();
@@ -224,8 +181,7 @@ public class SubjectLoggingTests
     private void AssertNoEventContainsTheSubject()
     {
         sink.Events.ShouldNotBeEmpty();
-        var leaks = sink.Events.Select(Describe).Where(d => d.Contains(Subject, StringComparison.OrdinalIgnoreCase)).ToList();
-        leaks.ShouldBeEmpty(string.Join("\n---\n", leaks));
+        sink.Events.ShouldAllBe(e => !Describe(e).Contains(Subject, StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task<WebApplication> StartAppAsync()
@@ -241,11 +197,9 @@ public class SubjectLoggingTests
             (context, services, configuration) =>
             {
                 CdpLogging.Configuration(context, services, configuration);
-
-                // The sink reads the log context, as CdpLogging's console logger does, so pushed properties are checked too.
                 configuration.MinimumLevel.Information()
                     .MinimumLevel.Override("Defra", LogEventLevel.Verbose)
-                    .WriteTo.Logger(sub => sub.Enrich.FromLogContext().WriteTo.Sink(sink));
+                    .WriteTo.Sink(sink);
             },
             preserveStaticLogger: true);
 
@@ -256,19 +210,11 @@ public class SubjectLoggingTests
         builder.Services.AddExceptionHandler<ApiExceptionHandler>();
         builder.Services.AddTransient<CorrelationIdMiddleware>();
 
-        // The cattle API client is registered as in Program, so the SDK logger, the timeout and circuit breaker, and
-        // Polly's own telemetry all run too (LREG-508).
+        // The cattle API client is registered as in Program, so the SDK and HttpClient factory loggers run too.
         builder.Services.AddStrategyFramework();
-        builder.Services.AddHeaderPropagation(options => options.Headers.Add(RequestHeaderNames.CorrelationId));
-        builder.Services.AddCattleApiHttpClient().ConfigurePrimaryHttpMessageHandler(() => cattleApi);
+        builder.Services.AddHttpClient<IRestHttpClient, RestHttpClient>().ConfigurePrimaryHttpMessageHandler(() => cattleApi);
         builder.Services.AddRestStrategyFactory<CattleHoldingRestClient>();
-        builder.Services.AddSingleton(new CattleApiOptions
-        {
-            BaseUrl = CattleApiBaseUrl,
-            ApiKey = nameof(SubjectLoggingTests),
-            TimeoutSeconds = 1,
-            CircuitBreakerFailureThreshold = 2,
-        });
+        builder.Services.AddSingleton(new CattleApiOptions { BaseUrl = CattleApiBaseUrl, ApiKey = nameof(SubjectLoggingTests) });
         builder.Services.AddScoped<ICattleHoldingClient, CattleHoldingRestClient>();
         builder.Services.AddScoped<IUserLookupService, UserLookupService>();
 
@@ -277,7 +223,6 @@ public class SubjectLoggingTests
         app.UseExceptionHandler();
         app.UseRouting();
         app.UseMiddleware<CorrelationIdMiddleware>();
-        app.UseHeaderPropagation();
         app.UseTestServiceToServiceAuthentication();
         app.UseUserEndpoints();
         await app.StartAsync(TestContext.Current.CancellationToken);

@@ -12,7 +12,7 @@ using System.Text;
 /// </summary>
 public sealed class StubHttpMessageHandler : HttpMessageHandler
 {
-    private readonly Queue<Func<CancellationToken, Task<HttpResponseMessage>>> responses = new();
+    private readonly Queue<Func<HttpResponseMessage>> responses = new();
 
     public List<HttpRequestMessage> Requests { get; } = [];
 
@@ -23,10 +23,10 @@ public sealed class StubHttpMessageHandler : HttpMessageHandler
 
     public StubHttpMessageHandler RespondWith(HttpStatusCode statusCode, string? json = null)
     {
-        responses.Enqueue(_ => Task.FromResult(new HttpResponseMessage(statusCode)
+        responses.Enqueue(() => new HttpResponseMessage(statusCode)
         {
             Content = json is null ? null : new StringContent(json, Encoding.UTF8, "application/json"),
-        }));
+        });
 
         return this;
     }
@@ -34,28 +34,9 @@ public sealed class StubHttpMessageHandler : HttpMessageHandler
     /// <summary>
     /// Fails the next request with <paramref name="exception"/>, as the transport does when the server cannot be reached.
     /// </summary>
-    /// <param name="exception">The exception the request fails with.</param>
-    /// <returns>This handler, to queue further responses.</returns>
     public StubHttpMessageHandler FailWith(Exception exception)
     {
-        responses.Enqueue(_ => throw exception);
-
-        return this;
-    }
-
-    /// <summary>
-    /// Holds the next request open until it is cancelled, as a hung cattle API does.
-    /// </summary>
-    /// <param name="received">Runs once the request reaches the handler, so a test can cancel it at that point.</param>
-    /// <returns>This handler, to queue further responses.</returns>
-    public StubHttpMessageHandler Hang(Action? received = null)
-    {
-        responses.Enqueue(async cancellationToken =>
-        {
-            received?.Invoke();
-            await Task.Delay(Timeout.Infinite, cancellationToken);
-            throw new InvalidOperationException("Unreachable: the delay only ends by cancellation.");
-        });
+        responses.Enqueue(() => throw exception);
 
         return this;
     }
@@ -70,6 +51,6 @@ public sealed class StubHttpMessageHandler : HttpMessageHandler
             throw new InvalidOperationException($"No stub response queued for {request.Method} {request.RequestUri}");
         }
 
-        return await responses.Dequeue()(cancellationToken);
+        return responses.Dequeue()();
     }
 }
