@@ -11,6 +11,12 @@
         "Mongo__DatabaseName": "lis-be4fe-cattle-home",
         "CattleApi__BaseUrl": "http://localhost:5019",
         "CattleApi__ApiKey": "local-dev-cattle-api-key",
+        "CattleApi__GetHoldingDetailsTimeout": "60000",
+        "CattleApi__SearchHoldingsTimeout": "60000",
+        "CattleApi__SearchCattleTimeout": "60000",
+        "CattleApi__GetCattleDetailsTimeout": "60000",
+        "CattleApi__GetUserDetailsTimeout": "60000",
+        "CattleApi__CreateUserTimeout": "60000",
         "ApiKeyAuthentication__Keys__0": "local-dev-cattle-home-api-key",
         "Cache__DurationMinutes": "5"
       }

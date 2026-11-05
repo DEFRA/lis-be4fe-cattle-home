@@ -140,7 +140,8 @@ Task("Test")
             testSettings.ResultsDirectory = coverageOutput.Combine(projectCoverageDirectory);
             testSettings.ArgumentCustomization = args => args
                 .AppendQuoted("--collect:XPlat Code Coverage")
-                .Append("--logger trx");
+                .Append("--logger trx")
+                .Append("-- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover,cobertura");
             DotNetTest(project.ToString(), testSettings);
         });
         

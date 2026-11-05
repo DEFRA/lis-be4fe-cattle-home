@@ -6,7 +6,6 @@ namespace Defra.Lis.Be4Fe.Api.Tests.CattleApi;
 
 using System.Net;
 using Defra.Lis.Be4Fe.Api;
-using Defra.Lis.Be4Fe.CattleApi;
 using Defra.Livestock.Sdk.Api.Strategies.Abstractions.Operations.Http.Rest.Client;
 using Defra.Livestock.Sdk.Api.Strategies.Operations.Http.Rest.Client;
 using Microsoft.AspNetCore.Hosting;
@@ -29,13 +28,15 @@ public sealed class CattleApiRequestHeadersTest
         client.DefaultRequestHeaders.Add("x-cdp-request-id", "corr-12345");
         client.DefaultRequestHeaders.Add("x-api-key", "inbound-key");
 
-        var response = await client.GetAsync("/api/cphs/22/001/0001/cattle?sex=female", TestContext.Current.CancellationToken);
+        var response = await client.GetAsync(
+            "/api/cphs/22/001/0001/cattle?sex=female",
+            TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var outbound = handler.Requests.ShouldHaveSingleItem();
         outbound.RequestUri!.ToString().ShouldBe("http://cattle-api.test/v1/holdings/22/001/0001/cattle?sex=female");
         outbound.Headers.GetValues("x-cdp-request-id").ShouldBe(["corr-12345"]);
-        outbound.Headers.GetValues(CattleHoldingRestClient.ApiKeyHeaderName).ShouldBe(["configured-key"]);
+        outbound.Headers.GetValues("x-api-key").ShouldBe(["configured-key"]);
     }
 
     [Fact]
@@ -49,7 +50,8 @@ public sealed class CattleApiRequestHeadersTest
         var response = await client.GetAsync("/api/cphs/22/001/0001/cattle", TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).ShouldContain("missing_header");
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).ShouldContain(
+            "missing_header");
         handler.Requests.ShouldBeEmpty();
     }
 
