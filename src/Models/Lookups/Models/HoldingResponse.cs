@@ -14,6 +14,11 @@ public class HoldingResponse
 
     public IReadOnlyCollection<string> Address { get; init; } = [];
 
+    /// <summary>
+    /// Gets the address the holding's correspondence is sent to, as lines; empty when none is held.
+    /// </summary>
+    public IReadOnlyCollection<string> CorrespondenceAddress { get; init; } = [];
+
     public string? KeeperName { get; init; }
 
     public DateTimeOffset? StartDate { get; init; }

@@ -20,6 +20,7 @@ public sealed class CattleHoldingRestClientTest
     private const string OakfieldHolding = """
                                            {"cph":"22/001/0001","name":"Oakfield Farm","holdingType":"AH",
                                             "address":["Oakfield Farm","Church Lane","Shrewsbury","Shropshire","SY4 1AB","England"],
+                                            "correspondenceAddress":["PO Box 1","Shrewsbury","SY1 1AA"],
                                             "keeperName":"Oakfield Farmer",
                                             "startDate":"2020-01-01T00:00:00+00:00",
                                             "endDate":null,
@@ -44,6 +45,7 @@ public sealed class CattleHoldingRestClientTest
                                                    "name": "Oakfield Farm",
                                                    "holdingType": "AH",
                                                    "address": ["Oakfield Farm", "Church Lane", "Shrewsbury", "Shropshire", "SY4 1AB", "England"],
+                                                   "correspondenceAddress": ["PO Box 1", "Shrewsbury", "SY1 1AA"],
                                                    "keeperName": "Oakfield Farmer",
                                                    "startDate": "2020-01-01T00:00:00+00:00",
                                                    "endDate": null,
@@ -173,6 +175,7 @@ public sealed class CattleHoldingRestClientTest
         details.EndDate.ShouldBeNull();
         details.Active.ShouldBe(true);
         details.Address.ShouldBe(["Oakfield Farm", "Church Lane", "Shrewsbury", "Shropshire", "SY4 1AB", "England"]);
+        details.CorrespondenceAddress.ShouldBe(["PO Box 1", "Shrewsbury", "SY1 1AA"]);
         var mark = details.HerdMarks.ShouldHaveSingleItem();
         mark.Mark.ShouldBe("UK 324537");
         mark.StartDate.ShouldBe(DateTimeOffset.Parse("2020-01-01T00:00:00+00:00"));
@@ -280,6 +283,7 @@ public sealed class CattleHoldingRestClientTest
         holding.Name.ShouldBe("Oakfield Farm");
         holding.HoldingType.ShouldBe("AH");
         holding.Address.ShouldBe(["Oakfield Farm", "Church Lane", "Shrewsbury", "Shropshire", "SY4 1AB", "England"]);
+        holding.CorrespondenceAddress.ShouldBe(["PO Box 1", "Shrewsbury", "SY1 1AA"]);
         holding.KeeperName.ShouldBe("Oakfield Farmer");
         holding.StartDate.ShouldBe(DateTimeOffset.Parse("2020-01-01T00:00:00+00:00"));
         holding.EndDate.ShouldBeNull();
@@ -1080,6 +1084,7 @@ public sealed class CattleHoldingRestClientTest
                                        "endDate": null,
                                        "active": false,
                                        "address": null,
+                                       "correspondenceAddress": null,
                                        "herdMarks": [
                                          {
                                            "mark": "UK 123456",
@@ -1121,6 +1126,7 @@ public sealed class CattleHoldingRestClientTest
         // Assert
         details.Cph.ShouldBe("22/001/0001");
         details.Address.ShouldBeEmpty();
+        details.CorrespondenceAddress.ShouldBeEmpty();
         details.AllowedSpecies.ShouldBeEmpty();
         var mark = details.HerdMarks.ShouldHaveSingleItem();
         mark.Species.ShouldBeEmpty();
@@ -1238,7 +1244,8 @@ public sealed class CattleHoldingRestClientTest
                                                   {
                                                     "cph": null,
                                                     "name": "Sparse Holding",
-                                                    "address": null
+                                                    "address": null,
+                                                    "correspondenceAddress": null
                                                   }
                                                 ]
                                               }
@@ -1254,6 +1261,7 @@ public sealed class CattleHoldingRestClientTest
         var item = result.Items.ShouldHaveSingleItem();
         item.Cph.ShouldBe(string.Empty);
         item.Address.ShouldBeEmpty();
+        item.CorrespondenceAddress.ShouldBeEmpty();
     }
 
     [Fact]
