@@ -399,6 +399,7 @@ public sealed partial class CattleHoldingRestClient : ICattleHoldingClient
             EndDate = holdingDetailed.EndDate,
             Active = holdingDetailed.Active,
             Address = holdingDetailed.Address ?? [],
+            CorrespondenceAddress = holdingDetailed.CorrespondenceAddress ?? [],
             HerdMarks = holdingDetailed.HerdMarks?
                 .Select(m => new HoldingMarkResponse
                 {
@@ -437,6 +438,7 @@ public sealed partial class CattleHoldingRestClient : ICattleHoldingClient
             Name = holding.Name,
             HoldingType = holding.HoldingType,
             Address = holding.Address ?? [],
+            CorrespondenceAddress = holding.CorrespondenceAddress ?? [],
             KeeperName = holding.KeeperName,
             StartDate = holding.StartDate,
             EndDate = holding.EndDate,
